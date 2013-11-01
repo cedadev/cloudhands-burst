@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 import argparse
+from concurrent.futures import ThreadPoolExecutor
 import logging
 import sys
 
@@ -32,20 +33,28 @@ def list_dc():
     conn = vcloudDrvr(
         user, pswd, host=host, port=port, api_version=apiV)
     return conn.vdcs
-        
+
 
 def main(args):
     rv = 1
-    logging.basicConfig(level=args.log_level,
-    format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
+    logging.basicConfig(
+        level=args.log_level,
+        format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
     log = logging.getLogger("cloudhands.burst")
     if args.version:
         for mod in (cloudhands.burst, cloudhands.common):
             log.info("{:18} version {}".format(mod.__name__, mod.__version__))
         rv = 0
     elif args.dc:
-        for i in list_dc():
-            log.info (i)
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(list_dc)
+            try:
+                for i in future.result(timeout=2.0):
+                    bits = vars(i).items()
+                    for k, v in bits:
+                        log.info("{} {}".format(k, v))
+            except TimeoutError:
+                log.warning("timed out")
     return rv
 
 
@@ -62,8 +71,9 @@ def parser():
     rv.add_argument(
         "--dc", action="store_true", default=False,
         help="Interact with data centres")
-    
+
     return rv
+
 
 def run():
     p = parser()
