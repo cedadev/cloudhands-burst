@@ -31,6 +31,7 @@ setup(
         ],
     entry_points={
         "console_scripts": [
+            "burst=cloudhands.burst.main:run",
         ],
     },
     zip_safe=False
