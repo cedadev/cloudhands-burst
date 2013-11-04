@@ -33,6 +33,7 @@ DFLT_DB = ":memory:"
 
 security.CA_CERTS_PATH = bundles
 
+
 class BurstController(Initialiser):
 
     def __init__(self, config, path=DFLT_DB):
@@ -41,7 +42,6 @@ class BurstController(Initialiser):
         self.session = Session()
         self.identity = self.session.query(
             Component).filter(Component.handle == burstCtrl).first()
-
 
     def check_DC(self):
         try:
@@ -69,12 +69,14 @@ class BurstController(Initialiser):
                     ResourceState).filter(ResourceState.name == "up").first()
 
                 status.changes.append(
-                    Touch(artifact=status, actor=self.identity, state=up,
-                    at=now))
+                    Touch(
+                        artifact=status, actor=self.identity, state=up, at=now)
+                    )
                 self.session.add(status)
                 self.session.commit()
 
         return rv
+
 
 def list_dc():
     config = next(iter(settings))  # FIXME
@@ -122,7 +124,8 @@ def parser():
         action="store_const", dest="log_level",
         const=logging.DEBUG, default=logging.INFO,
         help="Increase the verbosity of output")
-    rv.add_argument("--db", default=DFLT_DB,
+    rv.add_argument(
+        "--db", default=DFLT_DB,
         help="Set the path to the database [{}]".format(DFLT_DB))
     rv.add_argument(
         "--status", default="dc",
