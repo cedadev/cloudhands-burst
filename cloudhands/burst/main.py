@@ -3,23 +3,41 @@
 
 import argparse
 from concurrent.futures import ThreadPoolExecutor
+import datetime
 import logging
+import sqlite3
 import sys
+import uuid
 
 from libcloud import security
 from libcloud.compute.types import Provider
 from libcloud.compute.providers import get_driver
 
 import cloudhands.burst
-import cloudhands.common
 
+import cloudhands.common
+from cloudhands.common.component import burstCtrl  # TODO: Entry point
+from cloudhands.common.connectors import Initialiser
+from cloudhands.common.connectors import Session
 from cloudhands.common.discovery import bundles
 from cloudhands.common.discovery import settings
+from cloudhands.common.fsm import ResourceState
+from cloudhands.common.schema import Component
+from cloudhands.common.schema import DCStatus
+from cloudhands.common.schema import Touch
 
 __doc__ = """
 """
 
+DFLT_DB = ":memory:"
+
 security.CA_CERTS_PATH = bundles
+
+class BurstController(Initialiser):
+
+    def __init__(self, path=DFLT_DB):
+        self.engine = self.connect(sqlite3, path=path)
+        self.session = Session()
 
 
 def list_dc():
@@ -41,11 +59,16 @@ def main(args):
         level=args.log_level,
         format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
     log = logging.getLogger("cloudhands.burst")
+
+    ctrl = BurstController(path=args.db)
+
     if args.version:
         for mod in (cloudhands.burst, cloudhands.common):
             log.info("{:18} version {}".format(mod.__name__, mod.__version__))
         rv = 0
-    elif args.dc:
+    elif args.status == "dc":
+        identity = ctrl.session.query(
+            Component).filter(Component.handle == burstCtrl).first()
         with ThreadPoolExecutor(max_workers=1) as executor:
             future = executor.submit(list_dc)
             try:
@@ -55,6 +78,24 @@ def main(args):
                         log.info("{} {}".format(k, v))
             except TimeoutError:
                 log.warning("timed out")
+            else:
+                now = datetime.datetime.utcnow()
+                up = ctrl.session.query(
+                    ResourceState).filter(ResourceState.name == "up").first()
+
+                config = next(iter(settings))  # FIXME
+                # TODO: select or insert
+                status = DCStatus(
+                    uuid=uuid.uuid4().hex,
+                    model=cloudhands.common.__version__,
+                    uri=config["host"]["name"],
+                    name=config["host"]["name"])
+                status.changes.append(
+                    Touch(artifact=status, actor=identity, state=up, at=now))
+                ctrl.session.add(status)
+                ctrl.session.commit()
+
+                
     return rv
 
 
@@ -68,9 +109,11 @@ def parser():
         action="store_const", dest="log_level",
         const=logging.DEBUG, default=logging.INFO,
         help="Increase the verbosity of output")
+    rv.add_argument("--db", default=DFLT_DB,
+        help="Set the path to the database [{}]".format(DFLT_DB))
     rv.add_argument(
-        "--dc", action="store_true", default=False,
-        help="Interact with data centres")
+        "--status", default="dc",
+        help="Discover the status of part of the system")
 
     return rv
 
