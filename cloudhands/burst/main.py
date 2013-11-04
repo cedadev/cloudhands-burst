@@ -35,10 +35,46 @@ security.CA_CERTS_PATH = bundles
 
 class BurstController(Initialiser):
 
-    def __init__(self, path=DFLT_DB):
+    def __init__(self, config, path=DFLT_DB):
+        self.config = config
         self.engine = self.connect(sqlite3, path=path)
         self.session = Session()
+        self.identity = self.session.query(
+            Component).filter(Component.handle == burstCtrl).first()
 
+
+    def check_DC(self):
+        try:
+            status = self.session.query(DCStatus).filter(
+                DCStatus.name == self.config["host"]["name"]).first()
+        except Exception as e:
+            status = DCStatus(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                uri=self.config["host"]["name"],
+                name=self.config["host"]["name"])
+
+        with ThreadPoolExecutor(max_workers=1) as executor:
+            future = executor.submit(list_dc)
+            try:
+                now = datetime.datetime.utcnow()
+                rv = future.result(timeout=2.0)
+            except TimeoutError:
+                log.warning("timed out")
+                unknown = self.session.query(
+                    ResourceState).filter(
+                    ResourceState.name == "unknown").first()
+            else:
+                up = self.session.query(
+                    ResourceState).filter(ResourceState.name == "up").first()
+
+                status.changes.append(
+                    Touch(artifact=status, actor=self.identity, state=up,
+                    at=now))
+                self.session.add(status)
+                self.session.commit()
+
+        return rv
 
 def list_dc():
     config = next(iter(settings))  # FIXME
@@ -60,42 +96,19 @@ def main(args):
         format="%(asctime)s %(levelname)-7s %(name)s|%(message)s")
     log = logging.getLogger("cloudhands.burst")
 
-    ctrl = BurstController(path=args.db)
+    ctrl = BurstController(config=next(iter(settings)), path=args.db)
 
     if args.version:
         for mod in (cloudhands.burst, cloudhands.common):
             log.info("{:18} version {}".format(mod.__name__, mod.__version__))
         rv = 0
     elif args.status == "dc":
-        identity = ctrl.session.query(
-            Component).filter(Component.handle == burstCtrl).first()
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(list_dc)
-            try:
-                for i in future.result(timeout=2.0):
-                    bits = vars(i).items()
-                    for k, v in bits:
-                        log.info("{} {}".format(k, v))
-            except TimeoutError:
-                log.warning("timed out")
-            else:
-                now = datetime.datetime.utcnow()
-                up = ctrl.session.query(
-                    ResourceState).filter(ResourceState.name == "up").first()
+        result = ctrl.check_DC()
+        for i in result:
+            bits = vars(i).items()
+            for k, v in bits:
+                log.info("{} {}".format(k, v))
 
-                config = next(iter(settings))  # FIXME
-                # TODO: select or insert
-                status = DCStatus(
-                    uuid=uuid.uuid4().hex,
-                    model=cloudhands.common.__version__,
-                    uri=config["host"]["name"],
-                    name=config["host"]["name"])
-                status.changes.append(
-                    Touch(artifact=status, actor=identity, state=up, at=now))
-                ctrl.session.add(status)
-                ctrl.session.commit()
-
-                
     return rv
 
 
