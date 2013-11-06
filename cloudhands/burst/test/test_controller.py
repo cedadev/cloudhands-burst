@@ -5,7 +5,6 @@ from collections import namedtuple
 import unittest
 
 from cloudhands.burst.controller import BurstController
-from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Touch
 
 
