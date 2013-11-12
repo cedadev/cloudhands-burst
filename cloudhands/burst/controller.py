@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
-import argparse
 from concurrent.futures import ThreadPoolExecutor
 import datetime
 import logging
@@ -21,7 +20,7 @@ from cloudhands.common.connectors import Initialiser
 from cloudhands.common.connectors import Session
 from cloudhands.common.discovery import bundles
 from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import ResourceState
+from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import DCStatus
 from cloudhands.common.schema import Touch
@@ -75,17 +74,17 @@ class BurstController(Initialiser):
             except TimeoutError:
                 log.warning("timed out")
                 state = self.session.query(
-                    ResourceState).filter(
-                    ResourceState.name == "unknown").first()
+                    HostState).filter(
+                    HostState.name == "unknown").first()
             else:
                 if not rv:
                     state = self.session.query(
-                        ResourceState).filter(
-                        ResourceState.name == "down").first()
+                        HostState).filter(
+                        HostState.name == "down").first()
                 else:
                     state = self.session.query(
-                        ResourceState).filter(
-                        ResourceState.name == "up").first()
+                        HostState).filter(
+                        HostState.name == "up").first()
 
             finally:
                 status.changes.append(
