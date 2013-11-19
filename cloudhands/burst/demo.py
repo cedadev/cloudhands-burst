@@ -43,30 +43,33 @@ def create_node(name, auth, size=None, image=None):
     Create a node the libcloud way. Connection is created locally to permit
     threadpool dispatch.
     """
-    log = logging.getLogger("cloudhands.burst.{}".format(name))
-    conn = configure_driver()
+    provider, conn = recommend()
+    log = logging.getLogger("cloudhands.burst.{}".format(provider))
     img = image or next(
         i for i in conn.list_images() if i.name == "Routed-Centos6.4a")
-    log.info(img)
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
-    node = conn.create_node(name=name, auth=auth, size=size, image=image)
+    try:
+        node = conn.create_node(name=name, auth=auth, size=size, image=img)
+    except Exception as e:
+        log.warning(e)
+        node = None
     #rv = vars(node)
     #del rv["driver"]
     #print(rv)
-    return node
+    return (provider, node)
 
-def configure_driver():
-    config = next(iter(settings))  # FIXME
+def recommend(session=None):
+    provider, config = next(iter(settings.items()))  # TODO sort providers
     user = config["user"]["name"]
     pswd = config["user"]["pass"]
     host = config["host"]["name"]
     port = config["host"]["port"]
     apiV = config["host"]["api_version"]
-    drvr = get_driver(Provider.VCLOUD)
+    drvr = get_driver(config["libcloud"]["provider"])
     conn = drvr(
         user, pswd, host=host, port=port, api_version=apiV)
-    return conn
+    return provider, conn
 
 def hosts(session, state=None):
     query = session.query(Host)
@@ -90,7 +93,7 @@ def main(args):
 
     pwd = NodeAuthPassword("q1W2e3R4t5Y6")
     for host in hosts(ldr.con.session, state="requested"):
-        create_node(host.name, pwd)
+        log.info(create_node(host.name, pwd))
 
     return 1
 
