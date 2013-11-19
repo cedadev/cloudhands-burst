@@ -51,12 +51,10 @@ def create_node(name, auth, size=None, image=None):
         i for i in conn.list_sizes() if i.name == "1024 Ram")
     try:
         node = conn.create_node(name=name, auth=auth, size=size, image=img)
+        del node.driver  # rv should be picklable
     except Exception as e:
         log.warning(e)
         node = None
-    #rv = vars(node)
-    #del rv["driver"]
-    #print(rv)
     return (provider, node)
 
 def recommend(session=None):
@@ -92,13 +90,7 @@ def main(args):
     ldr.load_hosts_for_user(user)
 
     pwd = NodeAuthPassword("q1W2e3R4t5Y6")
-    for host in hosts(ldr.con.session, state="requested"):
-        log.info(create_node(host.name, pwd))
-
-    return 1
-
-    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as exctr:
-    #with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
+    with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
         jobs = {exctr.submit(
             create_node, name=host.name, auth=pwd): host for host in hosts(
                 ldr.con.session, state="requested")}
@@ -112,17 +104,25 @@ def main(args):
             ldr.con.session.commit()
             log.info("{} is scheduling".format(host.name))
 
+        requested = ldr.con.session.query(HostState).filter(
+            HostState.name == "requested").one()
         unknown = ldr.con.session.query(HostState).filter(
             HostState.name == "unknown").one()
         for job in concurrent.futures.as_completed(jobs):
             host = jobs[job]
+            provider, node = job.result()
             now = datetime.datetime.utcnow()
-            act = Touch(artifact=host, actor=user, state=unknown, at=now)
+            if not node:
+                act = Touch(artifact=host, actor=user, state=requested, at=now)
+                log.info("{} re-requested.".format(host.name))
+            else:
+                act = Touch(artifact=host, actor=user, state=unknown, at=now)
+                resource = Node(
+                    name=host.name, touch=act, provider=provider, uri=node.id)
+                ldr.con.session.add(resource)
+                log.info("{} created: {}".format(host.name, node.id))
             host.changes.append(act)
-            node = Node(name=host.name, touch=act)
-            ldr.con.session.add(node)
             ldr.con.session.commit()
-            log.info("{} {}: Status unknown".format(host.name, job.result()))
 
     return rv
 
