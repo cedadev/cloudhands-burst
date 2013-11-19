@@ -43,16 +43,18 @@ def create_node(name, auth, size=None, image=None):
     Create a node the libcloud way. Connection is created locally to permit
     threadpool dispatch.
     """
+    log = logging.getLogger("cloudhands.burst.{}".format(name))
     conn = configure_driver()
     img = image or next(
         i for i in conn.list_images() if i.name == "Routed-Centos6.4a")
+    log.info(img)
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
     node = conn.create_node(name=name, auth=auth, size=size, image=image)
-    rv = vars(node)
-    del rv["driver"]
-    print(rv)
-    return rv
+    #rv = vars(node)
+    #del rv["driver"]
+    #print(rv)
+    return node
 
 def configure_driver():
     config = next(iter(settings))  # FIXME
@@ -87,6 +89,11 @@ def main(args):
     ldr.load_hosts_for_user(user)
 
     pwd = NodeAuthPassword("q1W2e3R4t5Y6")
+    for host in hosts(ldr.con.session, state="requested"):
+        create_node(host.name, pwd)
+
+    return 1
+
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as exctr:
     #with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
         jobs = {exctr.submit(
@@ -112,7 +119,7 @@ def main(args):
             node = Node(name=host.name, touch=act)
             ldr.con.session.add(node)
             ldr.con.session.commit()
-            log.info("{}: Status unknown".format(host.name))
+            log.info("{} {}: Status unknown".format(host.name, job.result()))
 
     return rv
 
