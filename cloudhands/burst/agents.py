@@ -3,9 +3,9 @@
 
 import concurrent.futures
 import datetime
+import logging
 
-from cloudhands.burst.controller import BurstController
-from cloudhands.burst.controller import create_node
+from cloudhands.burst.control import create_node
 
 from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
@@ -52,7 +52,7 @@ def supply_nodes_to_requested_hosts(session):
                 act = Touch(artifact=host, actor=user, state=unknown, at=now)
                 resource = Node(
                     name=host.name, touch=act, provider=provider, uri=node.id)
-                ldr.con.session.add(resource)
+                session.add(resource)
                 log.info("{} created: {}".format(host.name, node.id))
             host.changes.append(act)
             session.commit()

@@ -9,29 +9,10 @@ import sqlite3
 import sys
 import uuid
 
-from libcloud import security
-from libcloud.compute.types import Provider
-from libcloud.compute.providers import get_driver
-
-import cloudhands.burst.main
-
-import cloudhands.common
-from cloudhands.common.connectors import Initialiser
-from cloudhands.common.connectors import Session
-from cloudhands.common.discovery import bundles
-from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import HostState
-from cloudhands.common.schema import Component
-from cloudhands.common.schema import DCStatus
-from cloudhands.common.schema import Touch
-
 __doc__ = """
 """
 
 DFLT_DB = ":memory:"
-
-security.CA_CERTS_PATH = bundles
-
 
 def list_images():
     conn = configure_driver()

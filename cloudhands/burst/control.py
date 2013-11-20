@@ -11,10 +11,11 @@ from libcloud.compute.providers import get_driver
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import bundles
+from cloudhands.common.discovery import settings
 
 security.CA_CERTS_PATH = bundles
 
-class BurstControl(object):
+class Strategy(object):
 
     def recommend(session=None):
         provider, config = next(iter(settings.items()))  # TODO sort providers
@@ -28,18 +29,13 @@ class BurstControl(object):
             user, pswd, host=host, port=port, api_version=apiV)
         return provider, conn
 
-    def __init__(self, module=sqlite3, path=":memory:"):
-        self.__dict__ = self._shared_state
-        if not hasattr(self, "engine"):
-            self.engine = self.connect(module, path)
-            self.session = Session(autoflush=False)
 
 def create_node(name, auth=None, size=None, image=None):
     """
     Create a node the libcloud way. Connection is created locally to permit
     threadpool dispatch.
     """
-    provider, conn = BurstController.recommend()
+    provider, conn = Strategy.recommend()
     log = logging.getLogger("cloudhands.burst.{}".format(provider))
     auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")
     img = image or next(
@@ -53,4 +49,3 @@ def create_node(name, auth=None, size=None, image=None):
         log.warning(e)
         node = None
     return (provider, node)
-

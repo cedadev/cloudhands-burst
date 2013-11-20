@@ -23,8 +23,11 @@ setup(
         "License :: OSI Approved :: BSD License"
     ],
     namespace_packages=["cloudhands"],
-    packages=["cloudhands.burst"],
-    package_data={"cloudhands.burst": []},
+    packages=["cloudhands.burst", "cloudhands.burst.test"],
+    package_data={
+            "cloudhands.burst": [],
+            "cloudhands.burst.test": [],
+        },
     install_requires=[
         "cloudhands-common>=0.02",
         "apache-libcloud>=0.13.0",
