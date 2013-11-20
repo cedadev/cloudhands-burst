@@ -3,7 +3,6 @@
 
 import concurrent.futures
 import datetime
-import logging
 
 from cloudhands.burst.control import create_node
 
@@ -32,6 +31,7 @@ def supply_nodes_to_requested_hosts(session):
         scheduling = session.query(HostState).filter(
             HostState.name == "scheduling").one()
         for host in jobs.values():
+            user = host.changes[-1].actor
             host.changes.append(
                 Touch(artifact=host, actor=user, state=scheduling, at=now))
             session.commit()
