@@ -1,98 +1,58 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
-from concurrent.futures import ThreadPoolExecutor
-import datetime
 import logging
 import sqlite3
-import sys
-import uuid
 
 from libcloud import security
-from libcloud.compute.types import Provider
+from libcloud.compute.base import NodeAuthPassword
 from libcloud.compute.providers import get_driver
 
-import cloudhands.burst
-
-import cloudhands.common
-from cloudhands.common.component import burstCtrl  # TODO: Entry point
 from cloudhands.common.connectors import Initialiser
 from cloudhands.common.connectors import Session
 from cloudhands.common.discovery import bundles
-from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import HostState
-from cloudhands.common.schema import Component
-from cloudhands.common.schema import DCStatus
-from cloudhands.common.schema import Touch
-
-__doc__ = """
-"""
-
-DFLT_DB = ":memory:"
 
 security.CA_CERTS_PATH = bundles
 
-
 class BurstController(Initialiser):
 
-    def get_dcs(driver, user, pswd, host, port, version):
-        conn = driver(
-            user, pswd, host=host, port=port, api_version=version)
-        return conn.vdcs
+    _shared_state = {}
 
-    def __init__(self, config, path=DFLT_DB, driver=None):
-        self.config = config
-        self.driver = driver or get_driver(Provider.VCLOUD)
-        self.engine = self.connect(sqlite3, path=path)
-        self.session = Session()
-        self.identity = self.session.query(
-            Component).filter(Component.handle == burstCtrl).first()
+    def recommend(session=None):
+        provider, config = next(iter(settings.items()))  # TODO sort providers
+        user = config["user"]["name"]
+        pswd = config["user"]["pass"]
+        host = config["host"]["name"]
+        port = config["host"]["port"]
+        apiV = config["host"]["api_version"]
+        drvr = get_driver(config["libcloud"]["provider"])
+        conn = drvr(
+            user, pswd, host=host, port=port, api_version=apiV)
+        return provider, conn
 
-    def check_DC(self):
-        status = self.session.query(DCStatus).filter(
-            DCStatus.name == self.config["host"]["name"]).first()
-        if status is None:
-            status = DCStatus(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__,
-                uri=self.config["host"]["name"],
-                name=self.config["host"]["name"])
+    def __init__(self, module=sqlite3, path=":memory:"):
+        self.__dict__ = self._shared_state
+        if not hasattr(self, "engine"):
+            self.engine = self.connect(module, path)
+            self.session = Session(autoflush=False)
 
-        kwargs = {
-            "user": self.config["user"]["name"],
-            "pswd": self.config["user"]["pass"],
-            "host": self.config["host"]["name"],
-            "port": self.config["host"]["port"],
-            "version": self.config["host"]["api_version"],
-        }
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(
-                BurstController.get_dcs, self.driver, **kwargs)
-            try:
-                now = datetime.datetime.utcnow()
-                rv = list(future.result(timeout=2.0))
-            except TimeoutError:
-                log.warning("timed out")
-                state = self.session.query(
-                    HostState).filter(
-                    HostState.name == "unknown").first()
-            else:
-                if not rv:
-                    state = self.session.query(
-                        HostState).filter(
-                        HostState.name == "down").first()
-                else:
-                    state = self.session.query(
-                        HostState).filter(
-                        HostState.name == "up").first()
+def create_node(name, auth=None, size=None, image=None):
+    """
+    Create a node the libcloud way. Connection is created locally to permit
+    threadpool dispatch.
+    """
+    provider, conn = BurstController.recommend()
+    log = logging.getLogger("cloudhands.burst.{}".format(provider))
+    auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")
+    img = image or next(
+        i for i in conn.list_images() if i.name == "Routed-Centos6.4a")
+    size = size or next(
+        i for i in conn.list_sizes() if i.name == "1024 Ram")
+    try:
+        node = conn.create_node(name=name, auth=auth, size=size, image=img)
+        del node.driver  # rv should be picklable
+    except Exception as e:
+        log.warning(e)
+        node = None
+    return (provider, node)
 
-            finally:
-                status.changes.append(
-                    Touch(
-                        artifact=status, actor=self.identity,
-                        state=state, at=now)
-                    )
-                self.session.add(status)
-                self.session.commit()
-
-        return rv

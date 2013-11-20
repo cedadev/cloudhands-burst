@@ -16,7 +16,6 @@ from libcloud.compute.providers import get_driver
 import cloudhands.burst.main
 
 import cloudhands.common
-from cloudhands.common.component import burstCtrl  # TODO: Entry point
 from cloudhands.common.connectors import Initialiser
 from cloudhands.common.connectors import Session
 from cloudhands.common.discovery import bundles
@@ -33,100 +32,6 @@ DFLT_DB = ":memory:"
 
 security.CA_CERTS_PATH = bundles
 
-
-class BurstController(Initialiser):
-
-    _shared_state = {}
-
-    def __init__(self, config, path=DFLT_DB):
-        self.config = config
-        if not hasattr(self, "session"):
-            self.engine = self.connect(sqlite3, path=path)
-            self.session = Session(autoflush=False)
-        self.identity = self.session.query(
-            Component).filter(Component.handle == burstCtrl).first()
-
-    def check_images(self):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(list_images)
-            try:
-                now = datetime.datetime.utcnow()
-                rv = future.result(timeout=2.0)
-            except TimeoutError:
-                log.warning("timed out")
-                unknown = self.session.query(
-                    HostState).filter(
-                    HostState.name == "unknown").first()
-            else:
-                up = self.session.query(
-                    HostState).filter(HostState.name == "up").first()
-
-        return rv
-
-    def check_nodes(self):
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(list_nodes)
-            try:
-                now = datetime.datetime.utcnow()
-                rv = future.result(timeout=2.0)
-            except TimeoutError:
-                log.warning("timed out")
-                unknown = self.session.query(
-                    HostState).filter(
-                    HostState.name == "unknown").first()
-            else:
-                up = self.session.query(
-                    HostState).filter(HostState.name == "up").first()
-
-        return rv
-
-    def check_DC(self):
-        try:
-            status = self.session.query(DCStatus).filter(
-                DCStatus.name == self.config["host"]["name"]).first()
-        except Exception as e:
-            status = DCStatus(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__,
-                uri=self.config["host"]["name"],
-                name=self.config["host"]["name"])
-
-        with ThreadPoolExecutor(max_workers=1) as executor:
-            future = executor.submit(list_dc)
-            try:
-                now = datetime.datetime.utcnow()
-                rv = future.result(timeout=2.0)
-            except TimeoutError:
-                log.warning("timed out")
-                unknown = self.session.query(
-                    HostState).filter(
-                    HostState.name == "unknown").first()
-            else:
-                up = self.session.query(
-                    HostState).filter(HostState.name == "up").first()
-
-                status.changes.append(
-                    Touch(
-                        artifact=status, actor=self.identity, state=up, at=now)
-                    )
-                self.session.add(status)
-                self.session.commit()
-
-        return rv
-
-
-def configure_driver():
-    config = next(iter(settings))  # FIXME
-    user = config["user"]["name"]
-    pswd = config["user"]["pass"]
-    host = config["host"]["name"]
-    port = config["host"]["port"]
-    apiV = config["host"]["api_version"]
-    drvr = get_driver(Provider.VCLOUD)
-    conn = drvr(
-        user, pswd, host=host, port=port, api_version=apiV)
-    print(drvr.features["create_node"])
-    return conn
 
 def list_images():
     conn = configure_driver()

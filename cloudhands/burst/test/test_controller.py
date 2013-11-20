@@ -28,6 +28,10 @@ class BurstControllerTests(unittest.TestCase):
         fixed = namedtuple("ResultSet", ["vdcs"])
         return fixed(vdcs=[{}])
 
+    def setUp(self):
+        """ Every test gets its own in-memory database """
+        self.ctrl = BurstController()
+
     def test_check_dc_with_no_vdcs(self):
         bc = BurstController(
             config=BurstControllerTests.fakeConfig,
