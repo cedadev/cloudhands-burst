@@ -8,15 +8,13 @@ from libcloud import security
 from libcloud.compute.base import NodeAuthPassword
 from libcloud.compute.providers import get_driver
 
-from cloudhands.common.connectors import Initialiser
-from cloudhands.common.connectors import Session
+from cloudhands.common.connectors import initialise
+from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import bundles
 
 security.CA_CERTS_PATH = bundles
 
-class BurstController(Initialiser):
-
-    _shared_state = {}
+class BurstControl(object):
 
     def recommend(session=None):
         provider, config = next(iter(settings.items()))  # TODO sort providers
