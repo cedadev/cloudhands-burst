@@ -3,6 +3,7 @@
 
 import concurrent.futures
 import datetime
+import logging
 
 from cloudhands.burst.control import create_node
 

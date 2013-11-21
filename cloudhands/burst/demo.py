@@ -14,6 +14,7 @@ import cloudhands.burst.main
 from cloudhands.burst.agents import supply_nodes_to_requested_hosts
 from cloudhands.burst.control import Strategy
 from cloudhands.burst.test.fixtures import BurstFixture
+from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.web.test.fixtures import WebFixture
 
@@ -31,6 +32,7 @@ def main(args):
     log = logging.getLogger("cloudhands.burst.demo")
 
     session = Registry().connect(sqlite3, args.db).session
+    initialise(session)
     WebFixture.create_organisations(session)
     user = WebFixture.grant_user_membership(session)
     WebFixture.load_hosts_for_user(session, user)
