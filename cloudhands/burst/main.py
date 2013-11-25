@@ -14,9 +14,11 @@ __doc__ = """
 
 DFLT_DB = ":memory:"
 
+
 def list_images():
     conn = configure_driver()
     return conn.list_images()
+
 
 def list_nodes():
     config = next(iter(settings))  # FIXME
@@ -75,7 +77,6 @@ def main(args):
             bits = vars(i).items()
             for k, v in bits:
                 log.info("{} {}".format(k, v))
-
 
     return rv
 

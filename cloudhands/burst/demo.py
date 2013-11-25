@@ -24,6 +24,7 @@ Back end demo
 
 DFLT_DB = ":memory:"
 
+
 def main(args):
     rv = 1
     logging.basicConfig(

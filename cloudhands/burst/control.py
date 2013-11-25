@@ -15,6 +15,7 @@ from cloudhands.common.discovery import settings
 
 security.CA_CERTS_PATH = bundles
 
+
 class Strategy(object):
 
     def recommend(session=None):

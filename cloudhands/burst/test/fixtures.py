@@ -12,6 +12,7 @@ from cloudhands.common.schema import Node
 from cloudhands.common.schema import Touch
 from cloudhands.common.tricks import allocate_ip
 
+
 class BurstFixture(object):
 
     def load_resources_for_user(session, user, nodes):
@@ -48,4 +49,3 @@ class BurstFixture(object):
             host.changes.append(
                 Touch(artifact=host, actor=user, state=state, at=now))
             session.commit()
-

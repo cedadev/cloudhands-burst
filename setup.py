@@ -25,8 +25,8 @@ setup(
     namespace_packages=["cloudhands"],
     packages=["cloudhands.burst", "cloudhands.burst.test"],
     package_data={
-            "cloudhands.burst": [],
-            "cloudhands.burst.test": [],
+        "cloudhands.burst": [],
+        "cloudhands.burst.test": [],
         },
     install_requires=[
         "cloudhands-common>=0.02",
