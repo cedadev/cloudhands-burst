@@ -12,7 +12,6 @@ import sys
 import cloudhands.burst.main
 
 from cloudhands.burst.agents import supply_nodes_to_requested_hosts
-from cloudhands.burst.control import Strategy
 from cloudhands.burst.test.fixtures import BurstFixture
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
