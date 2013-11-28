@@ -11,7 +11,7 @@ import sys
 
 import cloudhands.burst.main
 
-from cloudhands.burst.agents import supply_nodes_to_requested_hosts
+from cloudhands.burst.main import operate
 from cloudhands.burst.test.fixtures import BurstFixture
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
@@ -36,7 +36,7 @@ def main(args):
     WebFixture.create_organisations(session)
     user = WebFixture.grant_user_membership(session)
     WebFixture.load_hosts_for_user(session, user)
-    supply_nodes_to_requested_hosts(session)
+    operate(session)
     return rv
 
 

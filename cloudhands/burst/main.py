@@ -8,7 +8,7 @@ import sched
 import sys
 import time
 
-from cloudhands.burst.agents import supply_nodes_to_requested_hosts
+from cloudhands.burst.agents import HostAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import HostState
@@ -19,18 +19,10 @@ __doc__ = """
 DFLT_DB = ":memory:"
 
 
-class Operation(object):
+def operate(session):
+    for n, i in enumerate(HostAgent.touch_requested(session)):
+        print(n, i)
 
-    def __init__(self, schdlr):
-        self.schdlr = schdlr
-        self.shots = 10
-
-    def __call__(self, shot):
-        log = logging.getLogger("cloudhands.burst")
-        log.info("Shot nr: {}".format(shot))
-        if self.shots:
-            self.shots -= 1
-            job = self.schdlr.enter(5, 0, self, (self.shots,))
 
 def main(args):
     rv = 1
@@ -40,13 +32,7 @@ def main(args):
 
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
-    transitions = {
-        HostState: [supply_nodes_to_requested_hosts]
-    }
-    s = sched.scheduler(time.time, time.sleep)
-    op = Operation(s)
-    op(op.shots)
-    s.run()
+    operate(session)
     return rv
 
 
