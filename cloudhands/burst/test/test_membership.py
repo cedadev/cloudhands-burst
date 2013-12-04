@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+import datetime
 import sqlite3
 import unittest
 import uuid
@@ -11,6 +12,8 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
+from cloudhands.common.fsm import MembershipState
+
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
@@ -20,15 +23,15 @@ from cloudhands.common.schema import User
 class MembershipLifecycleTests(unittest.TestCase):
 
     def setUp(self):
-        session = Registry().connect(sqlite3, ":memory:").session
-        initialise(session)
+        self.session = Registry().connect(sqlite3, ":memory:").session
+        initialise(self.session)
         self.org = Organisation(name="TestOrg")
-        aM = Membership(
+        adminMp = Membership(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
             organisation=self.org,
             role="admin")
-        uM = Membership(
+        userMp = Membership(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
             organisation=self.org,
@@ -36,16 +39,33 @@ class MembershipLifecycleTests(unittest.TestCase):
         self.admin = User(handle="Administrator", uuid=uuid.uuid4().hex)
         self.user = User(handle="User", uuid=uuid.uuid4().hex)
         self.guest = User(handle="Guest", uuid=uuid.uuid4().hex)
-        session.add_all((self.admin, self.user, self.guest, aM, uM, self.org))
-        session.commit()
+        active = self.session.query(MembershipState).filter(
+            MembershipState.name == "active").one()
+        adminMp.changes.append(
+            Touch(
+                artifact=adminMp, actor=self.admin, state=active,
+                at=datetime.datetime.utcnow())
+            )
+        userMp.changes.append(
+            Touch(
+                artifact=userMp, actor=self.user, state=active,
+                at=datetime.datetime.utcnow())
+            )
+        self.session.add_all(
+            (self.admin, self.user, self.guest, adminMp, userMp, self.org))
+        self.session.commit()
 
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
  
-    def test_only_admins_create_invites(self):
-        session = Registry().connect(sqlite3, ":memory:").session
+    def test_inactive_admins_cannot_create_invites(self):
         self.assertIsNone(
-            MembershipAgent.invitation(session, self.user, self.org))
+            MembershipAgent.invitation(self.session, self.admin, self.org))
+
+    def test_only_admins_create_invites(self):
+        self.assertIsNone(
+            MembershipAgent.invitation(self.session, self.user, self.org))
         self.assertIsInstance(
-            Touch,
-            MembershipAgent.invitation(session, self.admin, self.org))
+            MembershipAgent.invitation(
+                self.session, self.admin, self.org),
+            Touch)
