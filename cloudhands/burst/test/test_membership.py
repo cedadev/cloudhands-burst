@@ -58,7 +58,31 @@ class MembershipLifecycleTests(unittest.TestCase):
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
  
-    def test_inactive_admins_cannot_create_invites(self):
+    def test_expired_admins_cannot_create_invites(self):
+        expired = self.session.query(MembershipState).filter(
+            MembershipState.name == "expired").one()
+        adminMp = self.session.query(Membership).join(Touch).join(User).filter(
+            User.id == self.admin.id).one()
+        adminMp.changes.append(
+            Touch(
+                artifact=adminMp, actor=self.admin, state=expired,
+                at=datetime.datetime.utcnow())
+            )
+        self.session.commit()
+        self.assertIsNone(
+            MembershipAgent.invitation(self.session, self.admin, self.org))
+
+    def test_withdrawn_admins_cannot_create_invites(self):
+        withdrawn = self.session.query(MembershipState).filter(
+            MembershipState.name == "withdrawn").one()
+        adminMp = self.session.query(Membership).join(Touch).join(User).filter(
+            User.id == self.admin.id).one()
+        adminMp.changes.append(
+            Touch(
+                artifact=adminMp, actor=self.admin, state=withdrawn,
+                at=datetime.datetime.utcnow())
+            )
+        self.session.commit()
         self.assertIsNone(
             MembershipAgent.invitation(self.session, self.admin, self.org))
 
