@@ -8,7 +8,7 @@ import sched
 import sys
 import time
 
-from cloudhands.burst.agents import HostAgent
+from cloudhands.burst.host import HostAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import HostState
