@@ -12,12 +12,24 @@ from cloudhands.common.schema import User
 
 
 class Invitation():
-
+    """
+    :param object user: A :py:func:`cloudhands.common.schema.User` object.
+    :param object org: A :py:func:`cloudhands.common.schema.Organisation`.
+    """
     def __init__(self, user, org):
         self.user = user
         self.org = org
 
     def __call__(self, session):
+        """
+        Attempts to create a new membership record for the organisation.
+
+        If the `user` attribute is not privileged in the organisation, the
+        operation will fail and `None` will be returned.
+
+        :param object session:  A SQLALchemy database session.
+        :returns: a :py:func:`cloudhands.common.schema.Touch` object.
+        """
         prvlg = session.query(Membership).join(Touch).join(User).filter(
             User.id == self.user.id).filter(
             Membership.organisation == self.org).filter(
