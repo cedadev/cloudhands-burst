@@ -6,7 +6,7 @@ import sqlite3
 import unittest
 import uuid
 
-from cloudhands.burst.membership import MembershipAgent
+from cloudhands.burst.membership import Invitation
 
 import cloudhands.common
 from cloudhands.common.connectors import initialise
@@ -70,7 +70,7 @@ class MembershipLifecycleTests(unittest.TestCase):
             )
         self.session.commit()
         self.assertIsNone(
-            MembershipAgent.invitation(self.session, self.admin, self.org))
+            Invitation(self.admin, self.org)(self.session))
 
     def test_withdrawn_admins_cannot_create_invites(self):
         withdrawn = self.session.query(MembershipState).filter(
@@ -84,12 +84,11 @@ class MembershipLifecycleTests(unittest.TestCase):
             )
         self.session.commit()
         self.assertIsNone(
-            MembershipAgent.invitation(self.session, self.admin, self.org))
+            Invitation(self.admin, self.org)(self.session))
 
     def test_only_admins_create_invites(self):
         self.assertIsNone(
-            MembershipAgent.invitation(self.session, self.user, self.org))
+            Invitation(self.user, self.org)(self.session))
         self.assertIsInstance(
-            MembershipAgent.invitation(
-                self.session, self.admin, self.org),
+            Invitation(self.admin, self.org)(self.session),
             Touch)

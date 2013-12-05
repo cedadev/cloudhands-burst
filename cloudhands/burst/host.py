@@ -21,7 +21,7 @@ def hosts(session, state=None):
     return [h for h in query.all() if h.changes[-1].state.name == state]
 
 
-class HostAgent(object):
+class HostAgent():
 
     def touch_requested(session):
         log = logging.getLogger("cloudhands.burst.agents.HostAgent")
