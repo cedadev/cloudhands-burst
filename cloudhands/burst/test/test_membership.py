@@ -6,6 +6,8 @@ import sqlite3
 import unittest
 import uuid
 
+from cloudhands.burst.membership import handle_from_email
+from cloudhands.burst.membership import Activation
 from cloudhands.burst.membership import Invitation
 
 import cloudhands.common
@@ -14,6 +16,7 @@ from cloudhands.common.connectors import Registry
 
 from cloudhands.common.fsm import MembershipState
 
+from cloudhands.common.schema import EmailAddress
 from cloudhands.common.schema import Membership
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Touch
@@ -38,7 +41,7 @@ class MembershipLifecycleTests(unittest.TestCase):
             role="user")
         self.admin = User(handle="Administrator", uuid=uuid.uuid4().hex)
         self.user = User(handle="User", uuid=uuid.uuid4().hex)
-        self.guest = User(handle="Guest", uuid=uuid.uuid4().hex)
+        self.guestAddr = "new.member@test.org"
         active = self.session.query(MembershipState).filter(
             MembershipState.name == "active").one()
         adminMp.changes.append(
@@ -52,12 +55,15 @@ class MembershipLifecycleTests(unittest.TestCase):
                 at=datetime.datetime.utcnow())
             )
         self.session.add_all(
-            (self.admin, self.user, self.guest, adminMp, userMp, self.org))
+            (self.admin, self.user, adminMp, userMp, self.org))
         self.session.commit()
 
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
+
  
+class InvitationTests(MembershipLifecycleTests):
+
     def test_expired_admins_cannot_create_invites(self):
         expired = self.session.query(MembershipState).filter(
             MembershipState.name == "expired").one()
@@ -92,3 +98,33 @@ class MembershipLifecycleTests(unittest.TestCase):
         self.assertIsInstance(
             Invitation(self.admin, self.org)(self.session),
             Touch)
+
+ 
+class ActivationTests(MembershipLifecycleTests):
+
+    def test_typical_add_user(self):
+        handle = handle_from_email(self.guestAddr)
+        user = User(handle=handle, uuid=uuid.uuid4().hex)
+        self.session.add(user)
+        self.session.commit()
+
+        mship = Invitation(self.admin, self.org)(self.session).artifact
+        ea = EmailAddress(value=self.guestAddr, provider="a settings key")
+        act = Activation(user, mship, ea)(self.session)
+        self.assertIsInstance(act, Touch)
+        self.assertIs(user, self.session.query(User).join(Touch).join(
+            EmailAddress).filter(EmailAddress.value == self.guestAddr).first())
+
+    def test_add_user_twice(self):
+        handle = handle_from_email(self.guestAddr)
+        user = User(handle=handle, uuid=uuid.uuid4().hex)
+        self.session.add(user)
+        self.session.commit()
+
+        mship = Invitation(self.admin, self.org)(self.session).artifact
+        ea = EmailAddress(value=self.guestAddr, provider="a settings key")
+        act = Activation(user, mship, ea)(self.session)
+        self.assertIsInstance(act, Touch)
+
+        reInvite = Invitation(self.admin, self.org)(self.session).artifact
+        self.assertIsInstance(act, Touch)

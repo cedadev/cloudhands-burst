@@ -11,6 +11,11 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 
+def handle_from_email(addrVal):
+    return ' '.join(
+        i.capitalize() for i in addrVal.split('@')[0].split('.'))
+
+
 class Invitation():
     """
     :param object user: A :py:func:`cloudhands.common.schema.User` object.
@@ -50,6 +55,36 @@ class Invitation():
         session.add(mship)
         session.commit()
         return act 
+
+
+class Activation():
+    """
+    :param object user: A :py:func:`cloudhands.common.schema.User` object.
+    :param object mship: A :py:func:`cloudhands.common.schema.Membership`.
+    :param object eAddr: A :py:func:`cloudhands.common.schema.EmailAddress`.
+    """
+    def __init__(self, user, mship, eAddr):
+        self.user = user
+        self.mship = mship
+        self.eAddr = eAddr
+
+    def __call__(self, session):
+        """
+        Activates the membership record for the organisation.
+
+        :param object session:  A SQLALchemy database session.
+        :returns: a :py:func:`cloudhands.common.schema.Touch` object.
+        """
+        active = session.query(
+            MembershipState).filter(MembershipState.name == "active").one()
+        now = datetime.datetime.utcnow()
+
+        act = Touch(artifact=self.mship, actor=self.user, state=active, at=now)
+        self.mship.changes.append(act)
+        self.eAddr.touch = act
+        session.add(self.eAddr)
+        session.commit()
+        return act
 
 
 class MembershipAgent():
