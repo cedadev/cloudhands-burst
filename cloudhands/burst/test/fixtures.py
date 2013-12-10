@@ -10,7 +10,7 @@ from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Touch
-from cloudhands.common.tricks import allocate_ip
+from cloudhands.web.tricks import allocate_ip
 
 
 class BurstFixture(object):
