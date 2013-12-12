@@ -35,7 +35,6 @@ setup(
     entry_points={
         "console_scripts": [
             "burst=cloudhands.burst.main:run",
-            "cloud-demoburst=cloudhands.burst.demo:run",
         ],
     },
     zip_safe=False
