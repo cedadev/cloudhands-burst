@@ -5,6 +5,7 @@ import argparse
 import datetime
 import logging
 import sched
+import sqlite3
 import sys
 import time
 
@@ -14,14 +15,23 @@ from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import HostState
 
 __doc__ = """
+This process performs tasks to administer hosts in the JASMIN cloud.
+
+It makes state changes to Host artifacts in the JASMIN database. It
+operates in a round-robin loop with a specified interval.
 """
 
 DFLT_DB = ":memory:"
 
 
-def operate(session):
-    for n, i in enumerate(HostAgent.touch_requested(session)):
-        print(n, i)
+def hosts_requested(args, session, loop=None):
+    log = logging.getLogger("cloudhands.burst.hosts_requested")
+    for act in enumerate(HostAgent.touch_requested(session)):
+        log.debug(act)
+
+    if loop is not None:
+        log.debug("Rescheduling {}s later".format(args.interval))
+        loop.enter(args.interval, 0, hosts_requested, (args, session, loop))
 
 
 def main(args):
@@ -32,7 +42,21 @@ def main(args):
 
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
-    operate(session)
+
+    loop = sched.scheduler()
+    ops = (hosts_requested,)
+    if args.interval is None:
+        for op in ops:
+            op(args, session)
+        return 0
+    else:
+        d = max(1, args.interval // len(ops))
+        for n, op in enumerate(ops):
+            loop.enter(args.interval, n, op, (args, session, loop))
+            time.sleep(d)
+        loop.run()
+        return 1
+
     return rv
 
 
@@ -49,7 +73,9 @@ def parser(descr=__doc__):
     rv.add_argument(
         "--db", default=DFLT_DB,
         help="Set the path to the database [{}]".format(DFLT_DB))
-
+    rv.add_argument(
+        "--interval", default=None, type=int,
+        help="Set the indexing interval (s)")
     return rv
 
 
