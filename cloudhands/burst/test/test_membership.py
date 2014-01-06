@@ -61,7 +61,7 @@ class MembershipLifecycleTests(unittest.TestCase):
     def tearDown(self):
         Registry().disconnect(sqlite3, ":memory:")
 
- 
+
 class InvitationTests(MembershipLifecycleTests):
 
     def test_expired_admins_cannot_create_invites(self):
@@ -99,7 +99,7 @@ class InvitationTests(MembershipLifecycleTests):
             Invitation(self.admin, self.org)(self.session),
             Touch)
 
- 
+
 class ActivationTests(MembershipLifecycleTests):
 
     def test_typical_add_user(self):

@@ -49,12 +49,15 @@ class HostAgent():
                 provider, node = job.result()
                 now = datetime.datetime.utcnow()
                 if not node:
-                    act = Touch(artifact=host, actor=user, state=requested, at=now)
+                    act = Touch(
+                        artifact=host, actor=user, state=requested, at=now)
                     log.info("{} re-requested.".format(host.name))
                 else:
-                    act = Touch(artifact=host, actor=user, state=unknown, at=now)
+                    act = Touch(
+                        artifact=host, actor=user, state=unknown, at=now)
                     resource = Node(
-                        name=host.name, touch=act, provider=provider, uri=node.id)
+                        name=host.name, touch=act, provider=provider,
+                        uri=node.id)
                     session.add(resource)
                     log.info("{} created: {}".format(host.name, node.id))
                 host.changes.append(act)

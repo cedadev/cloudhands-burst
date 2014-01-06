@@ -54,7 +54,7 @@ class Invitation():
         mship.changes.append(act)
         session.add(mship)
         session.commit()
-        return act 
+        return act
 
 
 class Activation():
@@ -89,4 +89,3 @@ class Activation():
 
 class MembershipAgent():
     pass
-
