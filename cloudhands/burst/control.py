@@ -14,7 +14,7 @@ from cloudhands.common.discovery import bundles
 from cloudhands.common.discovery import settings
 
 security.CA_CERTS_PATH = bundles
-
+security.VERIFY_SSL_CERT = True
 
 class Strategy(object):
 
