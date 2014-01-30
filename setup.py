@@ -1,17 +1,27 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
+import ast
 from setuptools import setup
 import os.path
 
-import cloudhands.burst
+
+try:
+    import cloudhands.burst.__version__ as version
+except ImportError:
+    # Pip evals this file prior to running setup.
+    # This causes ImportError in a fresh virtualenv.
+    version = str(ast.literal_eval(
+                open(os.path.join(os.path.dirname(__file__),
+                "cloudhands", "burst", "__init__.py"),
+                'r').read().split("=")[-1].strip()))
 
 __doc__ = open(os.path.join(os.path.dirname(__file__), "README.rst"),
                "r").read()
 
 setup(
     name="cloudhands-burst",
-    version=cloudhands.burst.__version__,
+    version=version,
     description="Cross-cloud bursting for cloudhands PaaS",
     author="D Haynes",
     author_email="david.e.haynes@stfc.ac.uk",

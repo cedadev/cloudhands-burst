@@ -40,10 +40,13 @@ def create_node(name, auth=None, size=None, image=None):
     log = logging.getLogger("cloudhands.burst.{}".format(provider))
     auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")
     img = image or next(
-        i for i in conn.list_images() if i.name == "Routed-Centos6.4a")
+        #i for i in conn.list_images() if i.name == "Routed-Centos6.4a")
+        i for i in conn.list_images() if i.name == "centos-routed64a")
+    log.debug(img)
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
     try:
+        log.debug(os.getcwd())
         node = conn.create_node(name=name, auth=auth, size=size, image=img)
         del node.driver  # rv should be picklable
     except Exception as e:
