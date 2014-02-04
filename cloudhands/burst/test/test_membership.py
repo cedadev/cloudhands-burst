@@ -109,7 +109,7 @@ class ActivationTests(MembershipLifecycleTests):
         self.session.commit()
 
         mship = Invitation(self.admin, self.org)(self.session).artifact
-        ea = EmailAddress(value=self.guestAddr, provider="a settings key")
+        ea = EmailAddress(value=self.guestAddr)
         act = Activation(user, mship, ea)(self.session)
         self.assertIsInstance(act, Touch)
         self.assertIs(user, self.session.query(User).join(Touch).join(
@@ -122,7 +122,7 @@ class ActivationTests(MembershipLifecycleTests):
         self.session.commit()
 
         mship = Invitation(self.admin, self.org)(self.session).artifact
-        ea = EmailAddress(value=self.guestAddr, provider="a settings key")
+        ea = EmailAddress(value=self.guestAddr)
         act = Activation(user, mship, ea)(self.session)
         self.assertIsInstance(act, Touch)
 
