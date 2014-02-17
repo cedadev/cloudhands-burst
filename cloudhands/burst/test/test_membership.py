@@ -28,7 +28,9 @@ class MembershipLifecycleTests(unittest.TestCase):
     def setUp(self):
         self.session = Registry().connect(sqlite3, ":memory:").session
         initialise(self.session)
-        self.org = Organisation(name="TestOrg")
+        self.org = Organisation(
+            uuid=uuid.uuid4().hex,
+            name="TestOrg")
         adminMp = Membership(
             uuid=uuid.uuid4().hex,
             model=cloudhands.common.__version__,
