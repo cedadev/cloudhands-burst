@@ -15,7 +15,6 @@ class Catalogue:
         self.actor = actor
         self.subs = subs
         self.items = items
-        print(*list(vars(i) for i in self.items))
 
     def __call__(self, session):
         if self.subs.changes[-1].state.name != "unchecked":
