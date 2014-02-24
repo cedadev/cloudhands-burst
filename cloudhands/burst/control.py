@@ -118,7 +118,7 @@ class Strategy(object):
         drvr = get_driver(config["libcloud"]["provider"])
         conn = drvr(
             user, pswd, host=host, port=port, api_version=apiV)
-        conn.create_node = debug_node
+        #conn.create_node = debug_node
         return provider, conn
 
 
@@ -144,3 +144,7 @@ def create_node(name, auth=None, size=None, image=None):
         log.warning(e)
         node = None
     return (provider, node)
+
+
+def list_images():
+    return None

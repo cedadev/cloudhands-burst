@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+import concurrent.futures
 import datetime
+import logging
 
 from cloudhands.common.fsm import SubscriptionState
+from cloudhands.common.schema import Subscription
 
 from cloudhands.common.schema import Touch
 
@@ -58,3 +61,25 @@ class Online:
         self.subs.changes.append(act)
         session.commit()
         return act
+
+def fake_list_images():
+    pass
+
+class SubscriptionAgent:
+
+    def touch_unchecked(session):
+        log = logging.getLogger("cloudhands.burst.agents.SubscriptionAgent")
+        unchecked = session.query(
+            SubscriptionState).filter(
+            SubscriptionState.name=="unchecked").one()
+            
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
+            subs = [i for i in session.query(Subscription).all()
+                if i.changes[-1].state is unchecked]
+            log.debug(subs)
+            yield None
+            #jobs = {
+            #    exctr.submit(fake_list_images, name=h.name): h for h in hosts(
+            #        session, state="requested")}
+
+        

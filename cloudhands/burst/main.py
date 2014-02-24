@@ -10,6 +10,7 @@ import sys
 import time
 
 from cloudhands.burst.host import HostAgent
+from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.fsm import HostState
@@ -34,6 +35,18 @@ def hosts_requested(args, session, loop=None):
         loop.enter(args.interval, 0, hosts_requested, (args, session, loop))
 
 
+def subscriptions_unchecked(args, session, loop=None):
+    log = logging.getLogger("cloudhands.burst.subscriptions_unchecked")
+    for act in enumerate(SubscriptionAgent.touch_unchecked(session)):
+        log.debug(act)
+
+    if loop is not None:
+        log.debug("Rescheduling {}s later".format(args.interval))
+        loop.enter(
+            args.interval, 0, subscriptions_unchecked,
+            (args, session, loop))
+
+
 def main(args):
     rv = 1
     logging.basicConfig(
@@ -44,7 +57,7 @@ def main(args):
     initialise(session)
 
     loop = sched.scheduler()
-    ops = (hosts_requested,)
+    ops = (hosts_requested, subscriptions_unchecked)
     if args.interval is None:
         for op in ops:
             op(args, session)
