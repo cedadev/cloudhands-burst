@@ -62,8 +62,27 @@ class Online:
         session.commit()
         return act
 
-def fake_list_images():
-    pass
+def fake_list_images(name):
+    from cloudhands.common.discovery import bundles
+    from cloudhands.common.discovery import providers
+    from libcloud import security
+    from libcloud.compute.providers import get_driver
+    security.CA_CERTS_PATH = bundles
+    for config in [
+        cfg for p in providers.values() for cfg in p
+        if cfg["metadata"]["path"] == name
+    ]:
+        user = config["user"]["name"]
+        pswd = config["user"]["pass"]
+        host = config["host"]["name"]
+        port = config["host"]["port"]
+        apiV = config["host"]["api_version"]
+        drvr = get_driver(config["libcloud"]["provider"])
+        conn = drvr(
+            user, pswd, host=host, port=port, api_version=apiV)
+        return [(i.name, i.id) for i in conn.list_images()]
+    
+
 
 class SubscriptionAgent:
 
@@ -76,10 +95,12 @@ class SubscriptionAgent:
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             subs = [i for i in session.query(Subscription).all()
                 if i.changes[-1].state is unchecked]
-            log.debug(subs)
-            yield None
-            #jobs = {
-            #    exctr.submit(fake_list_images, name=h.name): h for h in hosts(
-            #        session, state="requested")}
+            jobs = {
+                exctr.submit(fake_list_images, name=i.name): i for i in set(
+                    s.provider for s in subs)} 
+            for job in concurrent.futures.as_completed(jobs):
+                rv = job.result()
+                log.debug(rv)
+                yield rv
 
         
