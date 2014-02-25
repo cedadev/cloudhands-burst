@@ -5,10 +5,13 @@ import concurrent.futures
 import datetime
 import logging
 
+from cloudhands.burst.control import list_images
 from cloudhands.common.fsm import SubscriptionState
 from cloudhands.common.schema import Subscription
 
+from cloudhands.common.schema import Component
 from cloudhands.common.schema import Touch
+from cloudhands.common.schema import OSImage
 
 class Catalogue:
     """
@@ -81,13 +84,14 @@ def fake_list_images(name):
         conn = drvr(
             user, pswd, host=host, port=port, api_version=apiV)
         return [(i.name, i.id) for i in conn.list_images()]
-    
 
 
 class SubscriptionAgent:
 
     def touch_unchecked(session):
         log = logging.getLogger("cloudhands.burst.agents.SubscriptionAgent")
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
         unchecked = session.query(
             SubscriptionState).filter(
             SubscriptionState.name=="unchecked").one()
@@ -96,11 +100,18 @@ class SubscriptionAgent:
             subs = [i for i in session.query(Subscription).all()
                 if i.changes[-1].state is unchecked]
             jobs = {
-                exctr.submit(fake_list_images, name=i.name): i for i in set(
+                exctr.submit(list_images, name=i.name): i for i in set(
                     s.provider for s in subs)} 
+            log.debug(jobs)
             for job in concurrent.futures.as_completed(jobs):
-                rv = job.result()
-                log.debug(rv)
-                yield rv
-
-        
+                provider = jobs[job]
+                subscribers = [i for i in subs if i.provider is provider]
+                log.debug(subscribers)
+                now = datetime.datetime.utcnow()
+                for s in subscribers:
+                    act = Catalogue(actor, s)(session)
+                    for name, id_ in job.result():
+                        resource = OSImage(name=name, provider=provider, touch=act)
+                    s.changes.append(act)
+                    session.commit()
+                    yield act
