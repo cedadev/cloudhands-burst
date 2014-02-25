@@ -17,10 +17,9 @@ class Catalogue:
     """
     The catalogue of a provider as most recently discovered.
     """
-    def __init__(self, actor, subs, items):
+    def __init__(self, actor, subs):
         self.actor = actor
         self.subs = subs
-        self.items = items
 
     def __call__(self, session):
         if self.subs.changes[-1].state.name != "unchecked":
@@ -33,7 +32,6 @@ class Catalogue:
         act = Touch(
             artifact=self.subs, actor=self.actor, state=active, at=now)
         self.subs.changes.append(act)
-        act.resources = self.items
         session.commit()
         return act
 
@@ -65,27 +63,6 @@ class Online:
         session.commit()
         return act
 
-def fake_list_images(name):
-    from cloudhands.common.discovery import bundles
-    from cloudhands.common.discovery import providers
-    from libcloud import security
-    from libcloud.compute.providers import get_driver
-    security.CA_CERTS_PATH = bundles
-    for config in [
-        cfg for p in providers.values() for cfg in p
-        if cfg["metadata"]["path"] == name
-    ]:
-        user = config["user"]["name"]
-        pswd = config["user"]["pass"]
-        host = config["host"]["name"]
-        port = config["host"]["port"]
-        apiV = config["host"]["api_version"]
-        drvr = get_driver(config["libcloud"]["provider"])
-        conn = drvr(
-            user, pswd, host=host, port=port, api_version=apiV)
-        return [(i.name, i.id) for i in conn.list_images()]
-
-
 class SubscriptionAgent:
 
     def touch_unchecked(session):
@@ -100,18 +77,17 @@ class SubscriptionAgent:
             subs = [i for i in session.query(Subscription).all()
                 if i.changes[-1].state is unchecked]
             jobs = {
-                exctr.submit(list_images, name=i.name): i for i in set(
+                exctr.submit(list_images, providerName=i.name): i for i in set(
                     s.provider for s in subs)} 
-            log.debug(jobs)
             for job in concurrent.futures.as_completed(jobs):
                 provider = jobs[job]
                 subscribers = [i for i in subs if i.provider is provider]
-                log.debug(subscribers)
-                now = datetime.datetime.utcnow()
                 for s in subscribers:
                     act = Catalogue(actor, s)(session)
                     for name, id_ in job.result():
-                        resource = OSImage(name=name, provider=provider, touch=act)
+                        session.add(
+                            OSImage(name=name, provider=provider, touch=act))
                     s.changes.append(act)
                     session.commit()
+                    log.debug(act)
                     yield act

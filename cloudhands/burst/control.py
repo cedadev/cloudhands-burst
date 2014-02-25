@@ -13,6 +13,7 @@ from libcloud.compute.providers import get_driver
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import bundles
+from cloudhands.common.discovery import providers
 from cloudhands.common.discovery import settings
 
 security.CA_CERTS_PATH = bundles
@@ -121,6 +122,18 @@ class Strategy(object):
         #conn.create_node = debug_node
         return provider, conn
 
+    def connect(config):
+        user = config["user"]["name"]
+        pswd = config["user"]["pass"]
+        host = config["host"]["name"]
+        port = config["host"]["port"]
+        apiV = config["host"]["api_version"]
+        drvr = get_driver(config["libcloud"]["provider"])
+        conn = drvr(
+            user, pswd, host=host, port=port, api_version=apiV)
+        #conn.create_node = debug_node
+        return conn
+
 
 def create_node(name, auth=None, size=None, image=None):
     """
@@ -146,22 +159,12 @@ def create_node(name, auth=None, size=None, image=None):
     return (provider, node)
 
 
-def list_images(name):
-    from cloudhands.common.discovery import bundles
-    from cloudhands.common.discovery import providers
-    from libcloud import security
-    from libcloud.compute.providers import get_driver
-    security.CA_CERTS_PATH = bundles
+def list_images(providerName):
     for config in [
         cfg for p in providers.values() for cfg in p
-        if cfg["metadata"]["path"] == name
+        if cfg["metadata"]["path"] == providerName
     ]:
-        user = config["user"]["name"]
-        pswd = config["user"]["pass"]
-        host = config["host"]["name"]
-        port = config["host"]["port"]
-        apiV = config["host"]["api_version"]
-        drvr = get_driver(config["libcloud"]["provider"])
-        conn = drvr(
-            user, pswd, host=host, port=port, api_version=apiV)
+        conn = Strategy.connect(config)
         return [(i.name, i.id) for i in conn.list_images()]
+    else:
+        return None

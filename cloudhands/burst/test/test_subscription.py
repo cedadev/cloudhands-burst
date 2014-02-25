@@ -123,9 +123,12 @@ class CatalogueTests(SubscriptionLifecycleTests):
         jobs = [i for i in self.org.subscriptions
             if i.changes[-1].state is unchecked]
         self.assertEqual(1, len(jobs))
-        items = [OSImage(name=i) for i in ("CentOS6.5", "Ubuntu 12.04 LTS")]
         for subs in jobs:
-            act = Catalogue(actor, subs, items)(self.session)
+            act = Catalogue(actor, subs)(self.session)
+            for name in ("CentOS6.5", "Ubuntu 12.04 LTS"):
+                self.session.add(OSImage(name=name, touch=act))
+            subs.changes.append(act)
+            self.session.commit()
             self.assertIs(self.subs, act.artifact)
             self.assertEqual("active", act.state.name)
             self.assertEqual(2, len(act.resources))
@@ -146,8 +149,7 @@ class CatalogueTests(SubscriptionLifecycleTests):
             Touch(artifact=jobs[0], actor=actor, state=active, at=now))
         self.session.commit()
 
-        items = [OSImage(name=i) for i in ("CentOS6.5", "Ubuntu 12.04 LTS")]
         for subs in jobs:
-            act = Catalogue(actor, subs, items)(self.session)
+            act = Catalogue(actor, subs)(self.session)
             self.assertIs(None, act)
 
