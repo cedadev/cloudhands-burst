@@ -63,6 +63,7 @@ class Online:
         session.commit()
         return act
 
+
 class SubscriptionAgent:
 
     def touch_unchecked(session):
