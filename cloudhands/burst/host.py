@@ -6,10 +6,11 @@ import datetime
 import logging
 
 from cloudhands.burst.control import create_node
-
+from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Node
+from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
 
 
@@ -21,14 +22,29 @@ def hosts(session, state=None):
     return [h for h in query.all() if h.changes[-1].state.name == state]
 
 
+class Strategy(object):
+
+    def recommend(host):  # TODO sort providers
+        providerName = host.organisation.subscriptions[0].provider.name
+        for config in [
+            cfg for p in providers.values() for cfg in p
+            if cfg["metadata"]["path"] == providerName
+        ]:
+            return config
+        else:
+            return None
+
+
 class HostAgent():
 
     def touch_requested(session):
         log = logging.getLogger("cloudhands.burst.agents.HostAgent")
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             jobs = {
-                exctr.submit(create_node, name=h.name): h for h in hosts(
-                    session, state="requested")}
+                exctr.submit(
+                    create_node,
+                    config=Strategy.recommend(h),
+                    name=h.name): h for h in hosts(session, state="requested")}
 
             now = datetime.datetime.utcnow()
             scheduling = session.query(HostState).filter(
@@ -46,13 +62,15 @@ class HostAgent():
                 HostState.name == "unknown").one()
             for job in concurrent.futures.as_completed(jobs):
                 host = jobs[job]
-                provider, node = job.result()
+                config, node = job.result()
                 now = datetime.datetime.utcnow()
                 if not node:
                     act = Touch(
                         artifact=host, actor=user, state=requested, at=now)
                     log.info("{} re-requested.".format(host.name))
                 else:
+                    provider = session.query(Provider).filter(
+                        Provider.name==config["metadata"]["path"]).one()
                     act = Touch(
                         artifact=host, actor=user, state=unknown, at=now)
                     resource = Node(

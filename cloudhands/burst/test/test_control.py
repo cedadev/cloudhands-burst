@@ -3,7 +3,7 @@
 
 import unittest
 
-from cloudhands.burst.control import Strategy
+from cloudhands.burst.host import Strategy
 
 
 @unittest.skip("Provider selection strategy not yet implemented.")

@@ -14,7 +14,6 @@ from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import bundles
 from cloudhands.common.discovery import providers
-from cloudhands.common.discovery import settings
 
 security.CA_CERTS_PATH = bundles
 security.VERIFY_SSL_CERT = True
@@ -107,41 +106,27 @@ def debug_node(self, **kwargs):
     return node
 
 
-class Strategy(object):
-
-    def recommend(session=None):
-        provider, config = next(iter(settings.items()))  # TODO sort providers
-        user = config["user"]["name"]
-        pswd = config["user"]["pass"]
-        host = config["host"]["name"]
-        port = config["host"]["port"]
-        apiV = config["host"]["api_version"]
-        drvr = get_driver(config["libcloud"]["provider"])
-        conn = drvr(
-            user, pswd, host=host, port=port, api_version=apiV)
-        #conn.create_node = debug_node
-        return provider, conn
-
-    def connect(config):
-        user = config["user"]["name"]
-        pswd = config["user"]["pass"]
-        host = config["host"]["name"]
-        port = config["host"]["port"]
-        apiV = config["host"]["api_version"]
-        drvr = get_driver(config["libcloud"]["provider"])
-        conn = drvr(
-            user, pswd, host=host, port=port, api_version=apiV)
-        #conn.create_node = debug_node
-        return conn
+def connect(config):
+    user = config["user"]["name"]
+    pswd = config["user"]["pass"]
+    host = config["host"]["name"]
+    port = config["host"]["port"]
+    apiV = config["host"]["api_version"]
+    drvr = get_driver(config["libcloud"]["provider"])
+    conn = drvr(
+        user, pswd, host=host, port=port, api_version=apiV)
+    #conn.create_node = debug_node
+    return conn
 
 
-def create_node(name, auth=None, size=None, image=None):
+def create_node(config, name, auth=None, size=None, image=None):
     """
     Create a node the libcloud way. Connection is created locally to permit
     threadpool dispatch.
     """
-    provider, conn = Strategy.recommend()
-    log = logging.getLogger("cloudhands.burst.{}".format(provider))
+    log = logging.getLogger("cloudhands.burst.control.create_node")
+    conn = connect(config)
+    log.debug("Connection uses {}".format(config["metadata"]["path"]))
     auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")
     img = image or next(
         i for i in conn.list_images() if i.name == "Routed-Centos6.4a")  # Ph1
@@ -149,14 +134,14 @@ def create_node(name, auth=None, size=None, image=None):
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
     try:
-        #node = conn.create_node(name=name, auth=auth, size=size, image=img)
-        node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
+        node = conn.create_node(name=name, auth=auth, size=size, image=img)
+        #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
         log.debug("create_node returned {}".format(repr(node)))
         del node.driver  # rv should be picklable
     except Exception as e:
         log.warning(e)
         node = None
-    return (provider, node)
+    return (config, node)
 
 
 def list_images(providerName):
@@ -164,7 +149,7 @@ def list_images(providerName):
         cfg for p in providers.values() for cfg in p
         if cfg["metadata"]["path"] == providerName
     ]:
-        conn = Strategy.connect(config)
+        conn = connect(config)
         return [(i.name, i.id) for i in conn.list_images()]
     else:
         return None
