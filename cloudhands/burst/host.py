@@ -6,6 +6,7 @@ import datetime
 import logging
 
 from cloudhands.burst.control import create_node
+from cloudhands.burst.control import destroy_node
 from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
@@ -38,7 +39,7 @@ class Strategy(object):
 class HostAgent():
 
     def touch_requested(session):
-        log = logging.getLogger("cloudhands.burst.agents.HostAgent")
+        log = logging.getLogger("cloudhands.burst.host.touch_requested")
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             jobs = {
                 exctr.submit(
@@ -78,6 +79,39 @@ class HostAgent():
                         uri=node.id)
                     session.add(resource)
                     log.info("{} created: {}".format(host.name, node.id))
+                host.changes.append(act)
+                session.commit()
+                yield act
+
+    def touch_deleting(session):
+        log = logging.getLogger("cloudhands.burst.host.touch_deleting")
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
+            jobs = {
+                exctr.submit(
+                    create_node,
+                    config=Strategy.recommend(h),
+                    name=h.name): h for h in hosts(session, state="deleting")}
+
+            down = session.query(HostState).filter(
+                HostState.name == "down").one()
+            log.info("{} is going down".format(host.name))
+
+            deleting = session.query(HostState).filter(
+                HostState.name == "deleting").one()
+            unknown = session.query(HostState).filter(
+                HostState.name == "unknown").one()
+            for job in concurrent.futures.as_completed(jobs):
+                host = jobs[job]
+                config, node = job.result()
+                now = datetime.datetime.utcnow()
+                if node:
+                    act = Touch(
+                        artifact=host, actor=user, state=deleting, at=now)
+                    log.info("{} still deleting ({}).".format(host.name, node.id))
+                else:
+                    act = Touch(
+                        artifact=host, actor=user, state=down, at=now)
+                    log.info("{} down".format(host.name))
                 host.changes.append(act)
                 session.commit()
                 yield act

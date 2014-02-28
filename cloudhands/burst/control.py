@@ -144,6 +144,27 @@ def create_node(config, name, auth=None, size=None, image=None):
     return (config, node)
 
 
+def destroy_node(config, name, auth=None, size=None, image=None):
+    """
+    Destroy a node the libcloud way. Connection is created locally to permit
+    threadpool dispatch.
+    """
+    log = logging.getLogger("cloudhands.burst.control.destroy_node")
+    conn = connect(config)
+    log.debug("Connection uses {}".format(config["metadata"]["path"]))
+    try:
+        node = None
+        log.debug(conn.list_nodes())
+        #node = conn.create_node(name=name, auth=auth, size=size, image=img)
+        #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
+        #log.debug("create_node returned {}".format(repr(node)))
+        del node.driver  # rv should be picklable
+    except Exception as e:
+        log.warning(e)
+        node = None
+    return (config, node)
+
+
 def list_images(providerName):
     for config in [
         cfg for p in providers.values() for cfg in p
