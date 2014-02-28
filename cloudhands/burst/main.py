@@ -25,6 +25,16 @@ operates in a round-robin loop with a specified interval.
 DFLT_DB = ":memory:"
 
 
+def hosts_deleting(args, session, loop=None):
+    log = logging.getLogger("cloudhands.burst.hosts_deleting")
+    for act in enumerate(HostAgent.touch_deleting(session)):
+        log.debug(act)
+
+    if loop is not None:
+        log.debug("Rescheduling {}s later".format(args.interval))
+        loop.enter(args.interval, 0, hosts_deleting, (args, session, loop))
+
+
 def hosts_requested(args, session, loop=None):
     log = logging.getLogger("cloudhands.burst.hosts_requested")
     for act in enumerate(HostAgent.touch_requested(session)):
@@ -57,7 +67,10 @@ def main(args):
     initialise(session)
 
     loop = sched.scheduler()
-    ops = (hosts_requested, subscriptions_unchecked)
+    ops = (
+        hosts_deleting,
+        hosts_requested,
+        subscriptions_unchecked)
     if args.interval is None:
         for op in ops:
             op(args, session)

@@ -144,7 +144,7 @@ def create_node(config, name, auth=None, size=None, image=None):
     return (config, node)
 
 
-def destroy_node(config, name, auth=None, size=None, image=None):
+def destroy_node(config, uri, auth=None, size=None, image=None):
     """
     Destroy a node the libcloud way. Connection is created locally to permit
     threadpool dispatch.
@@ -153,7 +153,7 @@ def destroy_node(config, name, auth=None, size=None, image=None):
     conn = connect(config)
     log.debug("Connection uses {}".format(config["metadata"]["path"]))
     try:
-        node = None
+        node = [node]
         log.debug(conn.list_nodes())
         #node = conn.create_node(name=name, auth=auth, size=size, image=img)
         #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)

@@ -63,6 +63,7 @@ class HostAgent():
                 HostState.name == "unknown").one()
             for job in concurrent.futures.as_completed(jobs):
                 host = jobs[job]
+                user = host.changes[-1].actor
                 config, node = job.result()
                 now = datetime.datetime.utcnow()
                 if not node:
@@ -88,20 +89,25 @@ class HostAgent():
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             jobs = {
                 exctr.submit(
-                    create_node,
-                    config=Strategy.recommend(h),
-                    name=h.name): h for h in hosts(session, state="deleting")}
+                    destroy_node,
+                    config=Strategy.recommend(h), # FIXME
+                    uri=r.uri): r for h in hosts(session, state="deleting")
+                    for t in h.changes for r in t.resources
+                    if isinstance(r, Node)}
 
-            down = session.query(HostState).filter(
-                HostState.name == "down").one()
-            log.info("{} is going down".format(host.name))
+            for host in jobs.values():
+                log.info("{} is going down".format(host.name))
 
             deleting = session.query(HostState).filter(
                 HostState.name == "deleting").one()
+            down = session.query(HostState).filter(
+                HostState.name == "down").one()
             unknown = session.query(HostState).filter(
                 HostState.name == "unknown").one()
+
             for job in concurrent.futures.as_completed(jobs):
                 host = jobs[job]
+                user = host.changes[-1].actor
                 config, node = job.result()
                 now = datetime.datetime.utcnow()
                 if node:
