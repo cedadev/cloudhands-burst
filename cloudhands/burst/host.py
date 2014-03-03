@@ -11,6 +11,7 @@ from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Node
+from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
 
@@ -41,11 +42,16 @@ class HostAgent():
     def touch_requested(session):
         log = logging.getLogger("cloudhands.burst.host.touch_requested")
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
-            jobs = {
-                exctr.submit(
+            jobs = {}
+            for h in hosts(session, state="requested"):
+                name = h.name
+                rsrc = [r for r in h.changes[0].resources if isinstance(r, OSImage)]
+                job = exctr.submit(
                     create_node,
                     config=Strategy.recommend(h),
-                    name=h.name): h for h in hosts(session, state="requested")}
+                    name=h.name,
+                    image=rsrc[0].name if rsrc else None)
+                jobs[job] = h
 
             now = datetime.datetime.utcnow()
             scheduling = session.query(HostState).filter(

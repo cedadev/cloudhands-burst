@@ -128,11 +128,11 @@ def create_node(config, name, auth=None, size=None, image=None):
     conn = connect(config)
     log.debug("Connection uses {}".format(config["metadata"]["path"]))
     auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")
-    img = image or next(
-        i for i in conn.list_images() if i.name == "Routed-Centos6.4a")  # Ph1
-        # i for i in conn.list_images() if i.name == "centos-routed64a")  # Ph2
+    images = conn.list_images()
+    img = ([i for i in images if i.name==image] or images)[0]
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
+    log.debug(img)
     try:
         node = conn.create_node(name=name, auth=auth, size=size, image=img)
         #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
