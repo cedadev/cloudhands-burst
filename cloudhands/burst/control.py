@@ -8,6 +8,7 @@ import sqlite3
 
 from libcloud import security
 from libcloud.compute.base import NodeAuthPassword
+from libcloud.compute.providers import DRIVERS
 from libcloud.compute.providers import get_driver
 
 from cloudhands.common.connectors import initialise
@@ -16,7 +17,6 @@ from cloudhands.common.discovery import bundles
 from cloudhands.common.discovery import providers
 
 security.CA_CERTS_PATH = bundles
-security.VERIFY_SSL_CERT = True
 
 from libcloud.compute.drivers.vcloud import InstantiateVAppXML
 
@@ -112,6 +112,10 @@ def connect(config):
     host = config["host"]["name"]
     port = config["host"]["port"]
     apiV = config["host"]["api_version"]
+    security.VERIFY_SSL_CERT = config["host"].getboolean("verify_ssl_cert")
+    DRIVERS[config["libcloud"]["provider"]] = (
+        config["libcloud"]["module"], config["libcloud"]["module"])
+
     drvr = get_driver(config["libcloud"]["provider"])
     conn = drvr(
         user, pswd, host=host, port=port, api_version=apiV)
