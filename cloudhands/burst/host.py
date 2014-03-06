@@ -101,8 +101,8 @@ class HostAgent():
                     for t in h.changes for r in t.resources
                     if isinstance(r, Node)}
 
-            for host in jobs.values():
-                log.info("{} is going down".format(host.name))
+            for node in jobs.values():
+                log.info("{} is going down".format(node.name))
 
             deleting = session.query(HostState).filter(
                 HostState.name == "deleting").one()
@@ -112,18 +112,19 @@ class HostAgent():
                 HostState.name == "unknown").one()
 
             for job in concurrent.futures.as_completed(jobs):
-                host = jobs[job]
-                user = host.changes[-1].actor
-                config, node = job.result()
+                node = jobs[job]
+                host = node.touch.artifact
+                user = node.touch.actor
+                config, uri = job.result()
                 now = datetime.datetime.utcnow()
-                if node:
-                    act = Touch(
-                        artifact=host, actor=user, state=deleting, at=now)
-                    log.info("{} still deleting ({}).".format(host.name, node.id))
-                else:
+                if uri:
                     act = Touch(
                         artifact=host, actor=user, state=down, at=now)
                     log.info("{} down".format(host.name))
+                else:
+                    act = Touch(
+                        artifact=host, actor=user, state=deleting, at=now)
+                    log.info("{} still deleting ({}).".format(host.name, node.id))
                 host.changes.append(act)
                 session.commit()
                 yield act

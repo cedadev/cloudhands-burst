@@ -107,6 +107,7 @@ def debug_node(self, **kwargs):
 
 
 def connect(config):
+    log = logging.getLogger("cloudhands.burst.control.connect")
     user = config["user"]["name"]
     pswd = config["user"]["pass"]
     host = config["host"]["name"]
@@ -114,9 +115,10 @@ def connect(config):
     apiV = config["host"]["api_version"]
     security.VERIFY_SSL_CERT = config["host"].getboolean("verify_ssl_cert")
     DRIVERS[config["libcloud"]["provider"]] = (
-        config["libcloud"]["module"], config["libcloud"]["module"])
+        config["libcloud"]["module"], config["libcloud"]["driver"])
 
     drvr = get_driver(config["libcloud"]["provider"])
+    log.debug(drvr)
     conn = drvr(
         user, pswd, host=host, port=port, api_version=apiV)
     #conn.create_node = debug_node
@@ -157,16 +159,12 @@ def destroy_node(config, uri, auth=None, size=None, image=None):
     conn = connect(config)
     log.debug("Connection uses {}".format(config["metadata"]["path"]))
     try:
-        node = [node]
-        log.debug(conn.list_nodes())
-        #node = conn.create_node(name=name, auth=auth, size=size, image=img)
-        #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
-        #log.debug("create_node returned {}".format(repr(node)))
-        del node.driver  # rv should be picklable
+        node = next(i for i in conn.list_nodes() if i.id == uri)
+        conn.destroy_node(node)
     except Exception as e:
         log.warning(e)
-        node = None
-    return (config, node)
+        uri = None
+    return (config, uri)
 
 
 def list_images(providerName):
