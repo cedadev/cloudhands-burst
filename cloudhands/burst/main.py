@@ -14,6 +14,7 @@ from cloudhands.burst.host import HostAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+from cloudhands.common.discovery import settings
 from cloudhands.common.fsm import HostState
 
 __doc__ = """
@@ -46,6 +47,7 @@ def hosts_requested(args, session, loop=None):
         loop.enter(args.interval, 0, hosts_requested, (args, session, loop))
 
 
+# TODO: refactor to singleton pattern like identity controller
 def subscriptions_unchecked(args, session, loop=None):
     log = logging.getLogger("cloudhands.burst.subscriptions_unchecked")
     for act in enumerate(SubscriptionAgent.touch_unchecked(session)):
@@ -79,6 +81,7 @@ def main(args):
     ch.setFormatter(formatter)
     log.addHandler(ch)
 
+    portalName, config = next(iter(settings.items()))
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
 

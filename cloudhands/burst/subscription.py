@@ -79,7 +79,9 @@ class SubscriptionAgent:
                 if i.changes[-1].state is unchecked]
             jobs = {
                 exctr.submit(list_images, providerName=i.name): i for i in set(
-                    s.provider for s in subs)} 
+                    s.provider for s in subs)}
+            # for job in asyncio.as_completed(jobs):
+            #   result = yield from job  # The 'yield from' may raise 
             for job in concurrent.futures.as_completed(jobs):
                 provider = jobs[job]
                 subscribers = [i for i in subs if i.provider is provider]
