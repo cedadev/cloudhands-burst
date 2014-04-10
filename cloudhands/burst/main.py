@@ -91,7 +91,7 @@ def main(args):
         #subscriptions_unchecked)
 
     sA = SubscriptionAgent(args, config, session, loop)
-    sA.touch_unchecked()
+    sA.touch_unchecked(priority=1)
 
     if args.interval is None:
         # TODO

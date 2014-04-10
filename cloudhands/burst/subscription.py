@@ -71,8 +71,6 @@ class SubscriptionAgent:
 
     def __init__(self, args, config, session, loop=None):
         self.__dict__ = self._shared_state
-        log = logging.getLogger(
-            "cloudhands.burst.subscription.touch_unchecked")
         if not hasattr(self, "loop"):
             self.q = deque()
             self.args = args
@@ -81,7 +79,7 @@ class SubscriptionAgent:
             self.loop = loop
 
 
-    def touch_unchecked(self):
+    def touch_unchecked(self, priority=1):
         log = logging.getLogger("cloudhands.burst.subscription.touch_unchecked")
         actor = self.session.query(Component).filter(
             Component.handle=="burst.controller").one()
@@ -112,4 +110,4 @@ class SubscriptionAgent:
 
         if self.loop is not None:
             log.debug("Rescheduling {}s later".format(self.args.interval))
-            self.loop.enter(self.args.interval, 0, self.touch_unchecked)
+            self.loop.enter(self.args.interval, priority, self.touch_unchecked)
