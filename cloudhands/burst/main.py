@@ -61,7 +61,6 @@ def subscriptions_unchecked(args, session, loop=None):
 
 
 def main(args):
-    rv = 1
     log = logging.getLogger("cloudhands.burst")
     log.setLevel(args.log_level)
 
@@ -88,9 +87,14 @@ def main(args):
     loop = sched.scheduler()
     ops = (
         hosts_deleting,
-        hosts_requested,
-        subscriptions_unchecked)
+        hosts_requested)
+        #subscriptions_unchecked)
+
+    sA = SubscriptionAgent(args, config, session, loop)
+    sA.touch_unchecked()
+
     if args.interval is None:
+        # TODO
         for op in ops:
             op(args, session)
         return 0
@@ -99,10 +103,12 @@ def main(args):
         for n, op in enumerate(ops):
             loop.enter(args.interval, n, op, (args, session, loop))
             time.sleep(d)
+
+    if args.interval:
         loop.run()
         return 1
-
-    return rv
+    else:
+        return 0
 
 
 def parser(descr=__doc__):

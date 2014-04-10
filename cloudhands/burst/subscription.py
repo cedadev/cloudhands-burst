@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # encoding: UTF-8
 
+from collections import deque
 import concurrent.futures
 import datetime
 import logging
@@ -66,16 +67,30 @@ class Online:
 
 class SubscriptionAgent:
 
-    def touch_unchecked(session):
-        log = logging.getLogger("cloudhands.burst.agents.SubscriptionAgent")
-        actor = session.query(Component).filter(
+    _shared_state = {}
+
+    def __init__(self, args, config, session, loop=None):
+        self.__dict__ = self._shared_state
+        log = logging.getLogger(
+            "cloudhands.burst.subscription.touch_unchecked")
+        if not hasattr(self, "loop"):
+            self.q = deque()
+            self.args = args
+            self.config = config
+            self.session = session
+            self.loop = loop
+
+
+    def touch_unchecked(self):
+        log = logging.getLogger("cloudhands.burst.subscription.touch_unchecked")
+        actor = self.session.query(Component).filter(
             Component.handle=="burst.controller").one()
-        unchecked = session.query(
+        unchecked = self.session.query(
             SubscriptionState).filter(
             SubscriptionState.name=="unchecked").one()
             
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
-            subs = [i for i in session.query(Subscription).all()
+            subs = [i for i in self.session.query(Subscription).all()
                 if i.changes[-1].state is unchecked]
             jobs = {
                 exctr.submit(list_images, providerName=i.name): i for i in set(
@@ -86,11 +101,15 @@ class SubscriptionAgent:
                 provider = jobs[job]
                 subscribers = [i for i in subs if i.provider is provider]
                 for s in subscribers:
-                    act = Catalogue(actor, s)(session)
+                    act = Catalogue(actor, s)(self.session)
                     for name, id_ in job.result():
-                        session.add(
+                        self.session.add(
                             OSImage(name=name, provider=provider, touch=act))
                     s.changes.append(act)
-                    session.commit()
+                    self.session.commit()
                     log.debug(act)
-                    yield act
+                    self.q.append(act)
+
+        if self.loop is not None:
+            log.debug("Rescheduling {}s later".format(self.args.interval))
+            self.loop.enter(self.args.interval, 0, self.touch_unchecked)
