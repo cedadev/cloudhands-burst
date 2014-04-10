@@ -72,12 +72,11 @@ class SubscriptionAgent:
     def __init__(self, args, config, session, loop=None):
         self.__dict__ = self._shared_state
         if not hasattr(self, "loop"):
-            self.q = deque()
+            self.q = deque(maxlen=256)
             self.args = args
             self.config = config
             self.session = session
             self.loop = loop
-
 
     def touch_unchecked(self, priority=1):
         log = logging.getLogger("cloudhands.burst.subscription.touch_unchecked")

@@ -27,39 +27,6 @@ operates in a round-robin loop with a specified interval.
 DFLT_DB = ":memory:"
 
 
-def hosts_deleting(args, session, loop=None):
-    log = logging.getLogger("cloudhands.burst.hosts_deleting")
-    for act in enumerate(HostAgent.touch_deleting(session)):
-        log.debug(act)
-
-    if loop is not None:
-        log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(args.interval, 0, hosts_deleting, (args, session, loop))
-
-
-def hosts_requested(args, session, loop=None):
-    log = logging.getLogger("cloudhands.burst.hosts_requested")
-    for act in enumerate(HostAgent.touch_requested(session)):
-        log.debug(act)
-
-    if loop is not None:
-        log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(args.interval, 0, hosts_requested, (args, session, loop))
-
-
-# TODO: refactor to singleton pattern like identity controller
-def subscriptions_unchecked(args, session, loop=None):
-    log = logging.getLogger("cloudhands.burst.subscriptions_unchecked")
-    for act in enumerate(SubscriptionAgent.touch_unchecked(session)):
-        log.debug(act)
-
-    if loop is not None:
-        log.debug("Rescheduling {}s later".format(args.interval))
-        loop.enter(
-            args.interval, 0, subscriptions_unchecked,
-            (args, session, loop))
-
-
 def main(args):
     log = logging.getLogger("cloudhands.burst")
     log.setLevel(args.log_level)
@@ -85,24 +52,13 @@ def main(args):
     initialise(session)
 
     loop = sched.scheduler()
-    ops = (
-        hosts_deleting,
-        hosts_requested)
-        #subscriptions_unchecked)
 
     sA = SubscriptionAgent(args, config, session, loop)
     sA.touch_unchecked(priority=1)
 
-    if args.interval is None:
-        # TODO
-        for op in ops:
-            op(args, session)
-        return 0
-    else:
-        d = max(1, args.interval // len(ops))
-        for n, op in enumerate(ops):
-            loop.enter(args.interval, n, op, (args, session, loop))
-            time.sleep(d)
+    hA = HostAgent(args, config, session, loop)
+    hA.touch_requested(priority=1)
+    hA.touch_deleting(priority=2)
 
     if args.interval:
         loop.run()

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
+from collections import deque
 import concurrent.futures
 import datetime
 import logging
@@ -39,11 +40,22 @@ class Strategy(object):
 
 class HostAgent():
 
-    def touch_requested(session):
+    _shared_state = {}
+
+    def __init__(self, args, config, session, loop=None):
+        self.__dict__ = self._shared_state
+        if not hasattr(self, "loop"):
+            self.q = deque(maxlen=256)
+            self.args = args
+            self.config = config
+            self.session = session
+            self.loop = loop
+
+    def touch_requested(self, priority=1):
         log = logging.getLogger("cloudhands.burst.host.touch_requested")
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             jobs = {}
-            for h in hosts(session, state="requested"):
+            for h in hosts(self.session, state="requested"):
                 name = h.name
                 rsrc = [r for r in h.changes[0].resources if isinstance(r, OSImage)]
                 job = exctr.submit(
@@ -54,18 +66,18 @@ class HostAgent():
                 jobs[job] = h
 
             now = datetime.datetime.utcnow()
-            scheduling = session.query(HostState).filter(
+            scheduling = self.session.query(HostState).filter(
                 HostState.name == "scheduling").one()
             for host in jobs.values():
                 user = host.changes[-1].actor
                 host.changes.append(
                     Touch(artifact=host, actor=user, state=scheduling, at=now))
-                session.commit()
+                self.session.commit()
                 log.info("{} is scheduling".format(host.name))
 
-            requested = session.query(HostState).filter(
+            requested = self.session.query(HostState).filter(
                 HostState.name == "requested").one()
-            unknown = session.query(HostState).filter(
+            unknown = self.session.query(HostState).filter(
                 HostState.name == "unknown").one()
             for job in concurrent.futures.as_completed(jobs):
                 host = jobs[job]
@@ -77,38 +89,42 @@ class HostAgent():
                         artifact=host, actor=user, state=requested, at=now)
                     log.info("{} re-requested.".format(host.name))
                 else:
-                    provider = session.query(Provider).filter(
+                    provider = self.session.query(Provider).filter(
                         Provider.name==config["metadata"]["path"]).one()
                     act = Touch(
                         artifact=host, actor=user, state=unknown, at=now)
                     resource = Node(
                         name=host.name, touch=act, provider=provider,
                         uri=node.id)
-                    session.add(resource)
+                    self.session.add(resource)
                     log.info("{} created: {}".format(host.name, node.id))
                 host.changes.append(act)
-                session.commit()
-                yield act
+                self.session.commit()
+                self.q.append(act)
 
-    def touch_deleting(session):
+        if self.loop is not None:
+            log.debug("Rescheduling {}s later".format(self.args.interval))
+            self.loop.enter(self.args.interval, priority, self.touch_requested)
+
+    def touch_deleting(self, priority=1):
         log = logging.getLogger("cloudhands.burst.host.touch_deleting")
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             jobs = {
                 exctr.submit(
                     destroy_node,
                     config=Strategy.recommend(h), # FIXME
-                    uri=r.uri): r for h in hosts(session, state="deleting")
+                    uri=r.uri): r for h in hosts(self.session, state="deleting")
                     for t in h.changes for r in t.resources
                     if isinstance(r, Node)}
 
             for node in jobs.values():
                 log.info("{} is going down".format(node.name))
 
-            deleting = session.query(HostState).filter(
+            deleting = self.session.query(HostState).filter(
                 HostState.name == "deleting").one()
-            down = session.query(HostState).filter(
+            down = self.session.query(HostState).filter(
                 HostState.name == "down").one()
-            unknown = session.query(HostState).filter(
+            unknown = self.session.query(HostState).filter(
                 HostState.name == "unknown").one()
 
             for job in concurrent.futures.as_completed(jobs):
@@ -126,5 +142,9 @@ class HostAgent():
                         artifact=host, actor=user, state=deleting, at=now)
                     log.info("{} still deleting ({}).".format(host.name, node.id))
                 host.changes.append(act)
-                session.commit()
-                yield act
+                self.session.commit()
+                self.q.append(act)
+
+        if self.loop is not None:
+            log.debug("Rescheduling {}s later".format(self.args.interval))
+            self.loop.enter(self.args.interval, priority, self.touch_deleting)
