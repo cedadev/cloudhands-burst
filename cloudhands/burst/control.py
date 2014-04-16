@@ -125,7 +125,7 @@ def connect(config):
     return conn
 
 
-def create_node(config, name, auth=None, size=None, image=None):
+def create_node(config, name, auth=None, size=None, image=None, network=None):
     """
     Create a node the libcloud way. Connection is created locally to permit
     threadpool dispatch.
@@ -133,14 +133,15 @@ def create_node(config, name, auth=None, size=None, image=None):
     log = logging.getLogger("cloudhands.burst.control.create_node")
     conn = connect(config)
     log.debug("Connection uses {}".format(config["metadata"]["path"]))
-    auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")
+    auth = auth or NodeAuthPassword("q1W2e3R4t5Y6")  # FIXME
     images = conn.list_images()
     img = ([i for i in images if i.name==image] or images)[0]
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
     log.debug(img)
     try:
-        node = conn.create_node(name=name, auth=auth, size=size, image=img)
+        node = conn.create_node(
+            name=name, auth=auth, size=size, image=img, ex_network=network)
         #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
         log.debug("create_node returned {}".format(repr(node)))
         del node.driver  # rv should be picklable

@@ -25,8 +25,9 @@ def hosts(session, state=None):
     return [h for h in query.all() if h.changes[-1].state.name == state]
 
 
-class Strategy(object):
+class Strategy:
 
+    @staticmethod
     def recommend(host):  # TODO sort providers
         providerName = host.organisation.subscriptions[0].provider.name
         for config in [
@@ -38,7 +39,7 @@ class Strategy(object):
             return None
 
 
-class HostAgent():
+class HostAgent:
 
     _shared_state = {}
 
@@ -57,12 +58,13 @@ class HostAgent():
             jobs = {}
             for h in hosts(self.session, state="requested"):
                 name = h.name
-                rsrc = [r for r in h.changes[0].resources if isinstance(r, OSImage)]
+                config=Strategy.recommend(h)
+                imgs = [r for r in h.changes[0].resources if isinstance(r, OSImage)]
                 job = exctr.submit(
                     create_node,
-                    config=Strategy.recommend(h),
+                    config=config,
                     name=h.name,
-                    image=rsrc[0].name if rsrc else None)
+                    image=imgs[0].name if rsrc else None)
                 jobs[job] = h
 
             now = datetime.datetime.utcnow()
