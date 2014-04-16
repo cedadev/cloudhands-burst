@@ -58,13 +58,15 @@ class HostAgent:
             jobs = {}
             for h in hosts(self.session, state="requested"):
                 name = h.name
-                config=Strategy.recommend(h)
+                config = Strategy.recommend(h)
                 imgs = [r for r in h.changes[0].resources if isinstance(r, OSImage)]
+                network = config.get("vdc", "network", fallback=None)
                 job = exctr.submit(
                     create_node,
                     config=config,
                     name=h.name,
-                    image=imgs[0].name if rsrc else None)
+                    image=imgs[0].name if imgs else None,
+                    network=network)
                 jobs[job] = h
 
             now = datetime.datetime.utcnow()

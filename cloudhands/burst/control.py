@@ -138,9 +138,13 @@ def create_node(config, name, auth=None, size=None, image=None, network=None):
     img = ([i for i in images if i.name==image] or images)[0]
     size = size or next(
         i for i in conn.list_sizes() if i.name == "1024 Ram")
-    log.debug(img)
+    net = (
+        [i.get("href") for i in conn.networks if i.get("name") == network]
+        or [None])[0]  # TODO: remove
+    log.debug(net)
     try:
         node = conn.create_node(
+            #name=name, auth=auth, size=size, image=img, ex_vm_network=net)
             name=name, auth=auth, size=size, image=img, ex_network=network)
         #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
         log.debug("create_node returned {}".format(repr(node)))
