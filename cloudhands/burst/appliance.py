@@ -78,12 +78,12 @@ class ApplianceAgent:
             now = datetime.datetime.utcnow()
             provisioning = self.session.query(ApplianceState).filter(
                 ApplianceState.name == "provisioning").one()
-            for host in jobs.values():
-                user = host.changes[-1].actor
-                host.changes.append(
-                    Touch(artifact=host, actor=user, state=provisioning, at=now))
+            for app in jobs.values():
+                user = app.changes[-1].actor
+                app.changes.append(
+                    Touch(artifact=app, actor=user, state=provisioning, at=now))
                 self.session.commit()
-                log.info("{} is provisioning".format(host.name))
+                log.info("Appliance {} is provisioning".format(app.uuid))
 
             pre_operational = self.session.query(ApplianceState).filter(
                 ApplianceState.name == "pre_operational").one()

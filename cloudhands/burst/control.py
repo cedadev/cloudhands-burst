@@ -119,6 +119,7 @@ def connect(config):
 
     drvr = get_driver(config["libcloud"]["provider"])
     log.debug(drvr)
+    log.debug(' '.join((user, pswd, host, port, apiV)))
     conn = drvr(
         user, pswd, host=host, port=port, api_version=apiV)
     #conn.create_node = debug_node
