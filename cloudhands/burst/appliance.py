@@ -11,6 +11,8 @@ from cloudhands.burst.control import destroy_node
 from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
+from cloudhands.common.schema import CatalogueChoice
+from cloudhands.common.schema import Label
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
@@ -52,63 +54,70 @@ class ApplianceAgent:
             self.session = session
             self.loop = loop
 
-    def touch_requested(self, priority=1):
-        log = logging.getLogger("cloudhands.burst.host.touch_requested")
+    def touch_pre_provision(self, priority=1):
+        log = logging.getLogger("cloudhands.burst.host.touch_pre_provision")
         with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
             jobs = {}
-            for h in hosts(self.session, state="requested"):
-                name = h.name
-                config = Strategy.recommend(h)
-                imgs = [r for r in h.changes[0].resources if isinstance(r, OSImage)]
+            apps = [i for i in self.session.query(Appliance).all()
+                    if i.changes[-1].state.name == "pre_provision"]
+            for app in apps:
+                label = self.session.query(Label).join(Touch).join(Appliance).filter(
+                    Appliance.id == app.id).first()
+                image = self.session.query(CatalogueChoice).join(Touch).join(
+                    Appliance).filter(Appliance.id == app.id).first()
+                config = Strategy.recommend(app)
                 network = config.get("vdc", "network", fallback=None)
                 job = exctr.submit(
                     create_node,
                     config=config,
-                    name=h.name,
-                    image=imgs[0].name if imgs else None,
+                    name=label.name,
+                    image=image.name if image else None,
                     network=network)
-                jobs[job] = h
+                jobs[job] = app
 
             now = datetime.datetime.utcnow()
-            scheduling = self.session.query(ApplianceState).filter(
-                ApplianceState.name == "scheduling").one()
+            provisioning = self.session.query(ApplianceState).filter(
+                ApplianceState.name == "provisioning").one()
             for host in jobs.values():
                 user = host.changes[-1].actor
                 host.changes.append(
-                    Touch(artifact=host, actor=user, state=scheduling, at=now))
+                    Touch(artifact=host, actor=user, state=provisioning, at=now))
                 self.session.commit()
-                log.info("{} is scheduling".format(host.name))
+                log.info("{} is provisioning".format(host.name))
 
-            requested = self.session.query(ApplianceState).filter(
-                ApplianceState.name == "requested").one()
-            unknown = self.session.query(ApplianceState).filter(
-                ApplianceState.name == "unknown").one()
+            pre_operational = self.session.query(ApplianceState).filter(
+                ApplianceState.name == "pre_operational").one()
+            pre_provision = self.session.query(ApplianceState).filter(
+                ApplianceState.name == "pre_provision").one()
             for job in concurrent.futures.as_completed(jobs):
-                host = jobs[job]
-                user = host.changes[-1].actor
+                app = jobs[job]
+                user = app.changes[-1].actor
                 config, node = job.result()
                 now = datetime.datetime.utcnow()
                 if not node:
                     act = Touch(
-                        artifact=host, actor=user, state=requested, at=now)
-                    log.info("{} re-requested.".format(host.name))
+                        artifact=app, actor=user, state=pre_provision, at=now)
+                    log.info("{} re-requested.".format(app.name))
                 else:
+                    label = self.session.query(Label).join(Touch).join(Appliance).filter(
+                        Appliance.id == app.id).first()
                     provider = self.session.query(Provider).filter(
                         Provider.name==config["metadata"]["path"]).one()
                     act = Touch(
-                        artifact=host, actor=user, state=unknown, at=now)
+                        artifact=app, actor=user, state=pre_operational, at=now)
                     resource = Node(
-                        name=host.name, touch=act, provider=provider,
+                        name=label.name, touch=act, provider=provider,
                         uri=node.id)
                     self.session.add(resource)
-                    log.info("{} created: {}".format(host.name, node.id))
-                host.changes.append(act)
+                    log.info("{} created: {}".format(label.name, node.id))
+                app.changes.append(act)
                 self.session.commit()
                 self.q.append(act)
 
         if self.loop is not None:
             log.debug("Rescheduling {}s later".format(self.args.interval))
-            self.loop.enter(self.args.interval, priority, self.touch_requested)
+            self.loop.enter(
+                self.args.interval, priority, self.touch_pre_provision)
 
     def touch_deleting(self, priority=1):
         log = logging.getLogger("cloudhands.burst.host.touch_deleting")

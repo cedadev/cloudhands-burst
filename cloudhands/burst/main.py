@@ -57,7 +57,7 @@ def main(args):
     sA.touch_unchecked(priority=1)
 
     aA = ApplianceAgent(args, config, session, loop)
-    aA.touch_requested(priority=1)
+    aA.touch_pre_provision(priority=1)
     aA.touch_deleting(priority=2)
 
     if args.interval:
