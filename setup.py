@@ -44,7 +44,7 @@ setup(
         "cloudhands.burst.test": [],
         },
     install_requires=[
-        "cloudhands-common>=0.07",
+        "cloudhands-common>=0.20",
         "apache-libcloud>=0.13.0",
         ],
     entry_points={
