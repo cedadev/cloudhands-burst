@@ -10,17 +10,17 @@ import sqlite3
 import sys
 import time
 
-from cloudhands.burst.host import HostAgent
+from cloudhands.burst.appliance import ApplianceAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import HostState
+from cloudhands.common.fsm import ApplianceState
 
 __doc__ = """
 This process performs tasks to administer hosts in the JASMIN cloud.
 
-It makes state changes to Host artifacts in the JASMIN database. It
+It makes state changes to Appliance artifacts in the JASMIN database. It
 operates in a round-robin loop with a specified interval.
 """
 
@@ -56,9 +56,9 @@ def main(args):
     sA = SubscriptionAgent(args, config, session, loop)
     sA.touch_unchecked(priority=1)
 
-    hA = HostAgent(args, config, session, loop)
-    hA.touch_requested(priority=1)
-    hA.touch_deleting(priority=2)
+    aA = ApplianceAgent(args, config, session, loop)
+    aA.touch_requested(priority=1)
+    aA.touch_deleting(priority=2)
 
     if args.interval:
         loop.run()
