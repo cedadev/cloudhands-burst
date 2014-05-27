@@ -145,9 +145,9 @@ def create_node(config, name, auth=None, size=None, image=None, network=None):
     log.debug(net)
     try:
         node = conn.create_node(
-            #name=name, auth=auth, size=size, image=img, ex_vm_network=net)
-            name=name, auth=auth, size=size, image=img,
-            ex_network=network, ex_vm_fence="bridged")
+            #name=name, auth=auth, size=size, image=img,
+            #ex_network=network, ex_vm_fence="natRouted")
+            name=name, auth=auth, size=size, image=img, network=network)
         #node = conn.create_node(conn, name=name, auth=auth, size=size, image=img)
         log.debug("create_node returned {}".format(repr(node)))
         del node.driver  # rv should be picklable
