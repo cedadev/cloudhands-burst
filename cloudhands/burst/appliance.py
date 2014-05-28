@@ -13,6 +13,8 @@ from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
+from cloudhands.common.schema import Component
+from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Label
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import OSImage
@@ -140,18 +142,26 @@ class ApplianceAgent:
                     describe_node,
                     config=Strategy.config(node.provider.name),
                     uri=node.uri)
-                jobs[job] = app
+                jobs[job] = node
 
-            now = datetime.datetime.utcnow()
+            actor = self.session.query(Component).filter(
+                Component.handle=="burst.controller").one()
             operational = self.session.query(ApplianceState).filter(
                 ApplianceState.name == "operational").one()
 
             for job in concurrent.futures.as_completed(jobs):
-                app = jobs[job]
+                node = jobs[job]
                 user = app.changes[-1].actor
                 (ips,) = job.result()
-                log.debug(ips)
+
                 now = datetime.datetime.utcnow()
+                act = Touch(
+                    artifact=node.touch.artifact,
+                    actor=actor, state=operational, at=now)
+                for addr in ips:
+                    ip = IPAddress(value=addr, touch=act, provider=node.provider)
+                    self.session.add(ip)
+                self.session.commit()
 
         if self.loop is not None:
             log.debug("Rescheduling {}s later".format(self.args.interval))
