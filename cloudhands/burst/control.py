@@ -157,6 +157,23 @@ def create_node(config, name, auth=None, size=None, image=None, network=None):
     return (config, node)
 
 
+def describe_node(config, uri, auth=None, size=None, image=None):
+    """
+    Get the attributes of an existing node.
+    """
+    log = logging.getLogger("cloudhands.burst.control.describe_node")
+    conn = connect(config)
+    log.debug("Connection uses {}".format(config["metadata"]["path"]))
+    try:
+        node = next(i for i in conn.list_nodes() if i.id == uri)
+    except Exception as e:
+        log.warning(e)
+        return None
+    else:
+        log.debug(node)
+        return (node.public_ips,)
+
+
 def destroy_node(config, uri, auth=None, size=None, image=None):
     """
     Destroy a node the libcloud way. Connection is created locally to permit

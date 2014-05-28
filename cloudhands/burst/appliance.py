@@ -7,6 +7,7 @@ import datetime
 import logging
 
 from cloudhands.burst.control import create_node
+from cloudhands.burst.control import describe_node
 from cloudhands.burst.control import destroy_node
 from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import ApplianceState
@@ -30,8 +31,7 @@ def hosts(session, state=None):
 class Strategy:
 
     @staticmethod
-    def recommend(host):  # TODO sort providers
-        providerName = host.organisation.subscriptions[0].provider.name
+    def config(providerName):
         for config in [
             cfg for p in providers.values() for cfg in p
             if cfg["metadata"]["path"] == providerName
@@ -40,6 +40,10 @@ class Strategy:
         else:
             return None
 
+    @staticmethod
+    def recommend(host):  # TODO sort providers
+        providerName = host.organisation.subscriptions[0].provider.name
+        return Strategy.config(providerName)
 
 class ApplianceAgent:
 
@@ -118,6 +122,41 @@ class ApplianceAgent:
             log.debug("Rescheduling {}s later".format(self.args.interval))
             self.loop.enter(
                 self.args.interval, priority, self.touch_pre_provision)
+
+    def touch_pre_operational(self, priority=1):
+        log = logging.getLogger("cloudhands.burst.host.touch_pre_operational")
+
+        with concurrent.futures.ProcessPoolExecutor(max_workers=4) as exctr:
+            jobs = {}
+            apps = [i for i in self.session.query(Appliance).all()
+                    if i.changes[-1].state.name == "pre_operational"]
+
+            for app in apps:
+                #label = self.session.query(Label).join(Touch).join(Appliance).filter(
+                #    Appliance.id == app.id).first()
+                node = self.session.query(Node).join(Touch).join(Appliance).filter(
+                    Appliance.id == app.id).first()
+                job = exctr.submit(
+                    describe_node,
+                    config=Strategy.config(node.provider.name),
+                    uri=node.uri)
+                jobs[job] = app
+
+            now = datetime.datetime.utcnow()
+            operational = self.session.query(ApplianceState).filter(
+                ApplianceState.name == "operational").one()
+
+            for job in concurrent.futures.as_completed(jobs):
+                app = jobs[job]
+                user = app.changes[-1].actor
+                (ips,) = job.result()
+                log.debug(ips)
+                now = datetime.datetime.utcnow()
+
+        if self.loop is not None:
+            log.debug("Rescheduling {}s later".format(self.args.interval))
+            self.loop.enter(
+                self.args.interval, priority, self.touch_pre_operational)
 
     def touch_deleting(self, priority=1):
         log = logging.getLogger("cloudhands.burst.host.touch_deleting")
