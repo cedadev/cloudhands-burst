@@ -219,11 +219,16 @@ class NATNanny:
         log = logging.getLogger("cloudhands.burst.natnanny")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
+        reader, writer = asyncio.open_connection(
+            host=self.config["host"]["name"],
+            port=self.config["host"["port"],
+            ssl=False)
         while True:
             msg = yield from self.q.get()
             if msg is None:
                 log.warning("Sentinel received. Shutting down.")
                 break
+
 
 def main(args):
     log = logging.getLogger("cloudhands.burst")
