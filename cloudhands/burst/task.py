@@ -26,6 +26,9 @@ from cloudhands.common.discovery import settings
 
 DFLT_DB = ":memory:"
 
+# prototyping
+import aiohttp
+
 def debug_node(self, **kwargs):
     """Creates and returns node.
 
@@ -207,6 +210,12 @@ def list_images(providerName):
     else:
         return None
 
+class RequestWithoutSSLVerification(aiohttp.client.HttpClient):
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.verify_ssl = False
+
 class NATNanny:
 
     def __init__(self, q, args, config):
@@ -219,11 +228,42 @@ class NATNanny:
         log = logging.getLogger("cloudhands.burst.natnanny")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
-        reader, writer = asyncio.open_connection(
+        (reader, writer) = yield from asyncio.open_connection(
             host=self.config["host"]["name"],
-            port=self.config["host"["port"],
+            port=self.config["host"]["port"],
             ssl=False)
         while True:
+            proxies = {
+                "http": "http://wwwcache.rl.ac.uk:8080",
+                "https": "http://wwwcache.rl.ac.uk:8080"
+            }
+            connector = aiohttp.ProxyConnector(proxy=proxies["http"])
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=self.config["host"]["name"],
+                port=self.config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+            #requestClass = (RequestWithoutSSLVerification if not
+            #    self.config["host"].getboolean("verify_ssl_cert")
+            #    else aiohttp.client.ClientRequest)
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=self.config["host"]["name"],
+                    port=self.config["host"]["port"])
+                ],
+                verify_ssl=self.config["host"].getboolean("verify_ssl_cert")
+            )
+            response = yield from client.request(
+                "POST", url,
+                auth=(self.config["user"]["name"], self.config["user"]["pass"]),
+                headers=headers)
+                #connector=connector)
+                #request_class=requestClass)
+            print(response)
             msg = yield from self.q.get()
             if msg is None:
                 log.warning("Sentinel received. Shutting down.")
@@ -243,9 +283,12 @@ def main(args):
 
     portalName, config = next(iter(settings.items()))
 
+    cfg = next(
+        p for seq in providers.values() for p in seq
+        if p["metadata"]["path"].endswith("phase04.cfg"))
     loop = asyncio.get_event_loop()
     q = asyncio.Queue(loop=loop)
-    nanny = NATNanny(q, args, config)
+    nanny = NATNanny(q, args, cfg)
     tasks = [
         asyncio.Task(nanny())]
 
