@@ -1,7 +1,11 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
+import functools
 import unittest
+import xml.etree.ElementTree as ET
+
+from cloudhands.burst.utils import find_xpath
 
 xml_orglist = """
 <OrgList xmlns="http://www.vmware.com/vcloud/v1.5"
@@ -14,35 +18,29 @@ http://172.16.151.139/api/v1.5/schema/master.xsd">
 href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/59432a59-d448-4aa1-ae41"
 name="managed_tenancy_test_org" type="application/vnd.vmware.vcloud.org+xml"
 colour="blue"
-size="small"
-/>
+size="small" />
     <Org
 href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/6483ae7d-2307-4856-a1c9"
 name="un-managed_tenancy_test_org"
-type="application/vnd.vmware.vcloud.org+xml" />
+type="application/vnd.vmware.vcloud.org+xml"
 colour="red"
-size="small"
+size="small" />
     <Org
 href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/94704688-a5e2-4336-a54d"
-name="STFC-Administrator" type="application/vnd.vmware.vcloud.org+xml" />
+name="STFC-Administrator" type="application/vnd.vmware.vcloud.org+xml"
 colour="blue"
-size="small"
+size="small" />
     <Org
 href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/a93c9db9-7471-3192-8d09"
-name="System" type="application/vnd.vmware.vcloud.org+xml" />
+name="System" type="application/vnd.vmware.vcloud.org+xml"
 colour="red"
-size="big"
+size="big" />
 </OrgList>
 """
 
-import xml.etree.ElementTree as ET
+find_orgs = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
 
-def find_orgs(tree, *, name=None):
-    orgs = tree.findall("./*/[@type='application/vnd.vmware.vcloud.org+xml']")
-    if name is None:
-        return orgs
-    else:
-        return [i for i in orgs if i.attrib.get("name", None) == name]
 
 class XMLTests(unittest.TestCase):
 
@@ -61,4 +59,4 @@ class XMLTests(unittest.TestCase):
 
     def test_org_list_by_multiple_attributes(self):
         tree = ET.fromstring(xml_orglist)
-        self.assertEqual(1, len(find_orgs(tree, size="big", colur="red")))
+        self.assertEqual(1, len(find_orgs(tree, size="big", colour="red")))
