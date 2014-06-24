@@ -229,6 +229,7 @@ class NATNanny:
         log = logging.getLogger("cloudhands.burst.natnanny")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
+        ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         while True:
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
@@ -269,8 +270,12 @@ class NATNanny:
 
             orgData = yield from response.read_and_close()
             tree = ET.fromstring(orgData.decode("utf-8"))
-            for org in tree.iter():
-                print(org)
+            ET.dump(tree)
+            #orgs = tree.findall("./*/[@type='application/vnd.vmware.vcloud.org+xml']")
+            #for child in tree:
+            #    print(child.tag, child.attrib)
+            #for org in tree.iter("OrgList"):
+            #    print(org)
 
             msg = yield from self.q.get()
             if msg is None:
