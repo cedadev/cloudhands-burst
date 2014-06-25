@@ -67,6 +67,9 @@ class PreOperationalAgent(Agent):
     Message = namedtuple("PreOperationalMessage", [])
     Queue = asyncio.Queue
 
+    def jobs(self):
+        return [1, None]
+
     def touch(self, msg:Message):
         pass
     
@@ -76,11 +79,21 @@ class PreOperationalAgent(Agent):
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        provider = next(
+            p for seq in providers.values() for p in seq
+            if p["metadata"]["path"].endswith("phase04.cfg"))
+
         while True:
+            work = yield from self.work.get()
+
+            if work is None:
+                log.warning("Sentinel received. Shutting down.")
+                break
+
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
-                host=self.config["host"]["name"],
-                port=self.config["host"]["port"],
+                host=provider["host"]["name"],
+                port=provider["host"]["port"],
                 endpoint="api/sessions")
 
             headers = {
@@ -89,16 +102,16 @@ class PreOperationalAgent(Agent):
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
-                    host=self.config["host"]["name"],
-                    port=self.config["host"]["port"])
+                    host=provider["host"]["name"],
+                    port=provider["host"]["port"])
                 ],
-                verify_ssl=self.config["host"].getboolean("verify_ssl_cert")
+                verify_ssl=provider["host"].getboolean("verify_ssl_cert")
             )
 
             # TODO: We have to store tokens in the database
             response = yield from client.request(
                 "POST", url,
-                auth=(self.config["user"]["name"], self.config["user"]["pass"]),
+                auth=(provider["user"]["name"], provider["user"]["pass"]),
                 headers=headers)
                 #connector=connector)
                 #request_class=requestClass)
@@ -108,8 +121,8 @@ class PreOperationalAgent(Agent):
 
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
-                host=self.config["host"]["name"],
-                port=self.config["host"]["port"],
+                host=provider["host"]["name"],
+                port=provider["host"]["port"],
                 endpoint="api/org")
             response = yield from client.request(
                 "GET", url,
@@ -117,7 +130,7 @@ class PreOperationalAgent(Agent):
 
             orgList = yield from response.read_and_close()
             tree = ET.fromstring(orgList.decode("utf-8"))
-            orgFound = find_orgs(tree, name=self.config["vdc"]["org"])
+            orgFound = find_orgs(tree, name=provider["vdc"]["org"])
 
             response = yield from client.request(
                 "GET", next(orgFound).attrib.get("href"),
@@ -139,12 +152,8 @@ class PreOperationalAgent(Agent):
                 "GET", url, headers=headers)
             gwsData = yield from response.read_and_close()
             tree = ET.fromstring(gwsData.decode("utf-8"))
-            ET.dump(tree)
 
-            msg = yield from self.q.get()
-            if msg is None:
-                log.warning("Sentinel received. Shutting down.")
-                break
+            yield from msgQ.put(tree)
 
 @singledispatch
 def touch(msg):
@@ -152,16 +161,23 @@ def touch(msg):
     pass
 
 @asyncio.coroutine
-def dispatch(loop, msqQ, workers):
-    # Loop through ready tasks
-    # Call task query against database
-    # Place result on task queue
-    # Fetch message from msgQ
-    # Call message handler
+def operate(loop, msgQ, workers, args, config):
 
-    while True:
-        print("Yay")
-        yield from msgQ.get()
+    tasks = [asyncio.Task(w(loop, msgQ)) for w in workers]
+    while any(task for task in tasks if not task.done()):
+        yield from asyncio.sleep(0)
+        for worker in workers:
+            # Call task query against database
+            # Place result on task queue
+            for job in worker.jobs():
+                yield from worker.work.put(job)
+
+        try:
+            while True:
+                msg = msgQ.get_nowait()
+                touch(msg)
+        except asyncio.QueueEmpty:
+            continue
 
 def main(args):
     log = logging.getLogger("cloudhands.burst")
@@ -176,9 +192,6 @@ def main(args):
 
     portalName, config = next(iter(settings.items()))
 
-    cfg = next(
-        p for seq in providers.values() for p in seq
-        if p["metadata"]["path"].endswith("phase04.cfg"))
     loop = asyncio.get_event_loop()
     msgQ = asyncio.Queue(loop=loop)
 
@@ -189,10 +202,7 @@ def main(args):
         touch.register(agentType.Message, agent.touch)
         workers.append(agent)
 
-    print(workers)
-
-    tasks = [asyncio.Task(w(loop, msgQ)) for w in workers]
-    loop.run_until_complete(asyncio.wait(dispatch(loop, msgQ, workers)))
+    loop.run_until_complete(operate(loop, msgQ, workers, args, config))
     loop.close()
 
     return 0
