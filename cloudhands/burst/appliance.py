@@ -2,10 +2,12 @@
 # encoding: UTF-8
 
 from collections import deque
+from collections import namedtuple
 import concurrent.futures
 import datetime
 import logging
 
+from cloudhands.burst.agent import Agent
 from cloudhands.burst.control import create_node
 from cloudhands.burst.control import describe_node
 from cloudhands.burst.control import destroy_node
@@ -47,6 +49,19 @@ class Strategy:
         providerName = host.organisation.subscriptions[0].provider.name
         return Strategy.config(providerName)
 
+
+class PreProvisionAgent(Agent):
+
+    Message = namedtuple("ProvisioningMessage", ["content"])
+
+    @property
+    def callbacks(self):
+        return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
+
+    def touch_to_provisioning(self, msg:Message, session):
+        print(msg)
+    
+### Old code below for deletion ####
 class ApplianceAgent:
 
     _shared_state = {}
