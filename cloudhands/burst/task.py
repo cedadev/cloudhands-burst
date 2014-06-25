@@ -28,7 +28,14 @@ DFLT_DB = ":memory:"
 
 # prototyping
 import aiohttp
+from collections import OrderedDict
+from collections import namedtuple
 import functools
+try:
+    from functools import singledispatch
+except ImportError:
+    from singledispatch import singledispatch
+import warnings
 import xml.etree.ElementTree as ET
 
 from cloudhands.burst.utils import find_xpath
@@ -42,12 +49,14 @@ find_vdcs = functools.partial(
 find_records = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.query.records+xml']")
 
-class NATNanny:
+class Agent:
 
-    def __init__(self, q, args, config):
-        self.q = q
+    def __init__(self, workQ, args, config):
+        self.work = workQ
         self.args = args
         self.config = config
+
+class PreOperationalAgent(Agent):
 
         #proxies = {
         #    "http": "http://wwwcache.rl.ac.uk:8080",
@@ -55,8 +64,14 @@ class NATNanny:
         #}
         #connector = aiohttp.ProxyConnector(proxy=proxies["http"])
 
+    Message = namedtuple("PreOperationalMessage", [])
+    Queue = asyncio.Queue
+
+    def touch(self, msg:Message):
+        pass
+    
     @asyncio.coroutine
-    def __call__(self):
+    def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.natnanny")
         session = Registry().connect(sqlite3, self.args.db).session
         initialise(session)
@@ -131,6 +146,22 @@ class NATNanny:
                 log.warning("Sentinel received. Shutting down.")
                 break
 
+@singledispatch
+def touch(msg):
+    warnings.warn("No handler for {}".format(type(msg)))
+    pass
+
+@asyncio.coroutine
+def dispatch(loop, msqQ, workers):
+    # Loop through ready tasks
+    # Call task query against database
+    # Place result on task queue
+    # Fetch message from msgQ
+    # Call message handler
+
+    while True:
+        print("Yay")
+        yield from msgQ.get()
 
 def main(args):
     log = logging.getLogger("cloudhands.burst")
@@ -149,13 +180,19 @@ def main(args):
         p for seq in providers.values() for p in seq
         if p["metadata"]["path"].endswith("phase04.cfg"))
     loop = asyncio.get_event_loop()
-    q = asyncio.Queue(loop=loop)
-    nanny = NATNanny(q, args, cfg)
-    tasks = [
-        asyncio.Task(nanny())]
+    msgQ = asyncio.Queue(loop=loop)
 
-    loop.call_soon_threadsafe(q.put_nowait, None)
-    loop.run_until_complete(asyncio.wait(tasks))
+    workers = []
+    for agentType in (PreOperationalAgent,):
+        workQ = agentType.Queue(loop=loop)
+        agent = agentType(workQ, args, config)
+        touch.register(agentType.Message, agent.touch)
+        workers.append(agent)
+
+    print(workers)
+
+    tasks = [asyncio.Task(w(loop, msgQ)) for w in workers]
+    loop.run_until_complete(asyncio.wait(dispatch(loop, msgQ, workers)))
     loop.close()
 
     return 0
