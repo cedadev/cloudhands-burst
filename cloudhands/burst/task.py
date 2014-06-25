@@ -64,20 +64,25 @@ class PreOperationalAgent(Agent):
         #}
         #connector = aiohttp.ProxyConnector(proxy=proxies["http"])
 
-    Message = namedtuple("PreOperationalMessage", [])
-    Queue = asyncio.Queue
+    Message = namedtuple("PreOperationalMessage", ["content"])
 
-    def jobs(self):
+    @staticmethod
+    def queue(args, config, loop=None):
+        return asyncio.Queue(loop=loop)
+
+    @property
+    def callbacks(self):
+        return [(PreOperationalAgent.Message, self.touch)]
+
+    def jobs(self, session):
         return [1, None]
 
-    def touch(self, msg:Message):
-        pass
+    def touch(self, msg:Message, session):
+        print(msg)
     
     @asyncio.coroutine
     def __call__(self, loop, msgQ):
-        log = logging.getLogger("cloudhands.burst.natnanny")
-        session = Registry().connect(sqlite3, self.args.db).session
-        initialise(session)
+        log = logging.getLogger("cloudhands.burst.appliance.preoperational")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         provider = next(
             p for seq in providers.values() for p in seq
@@ -153,7 +158,7 @@ class PreOperationalAgent(Agent):
             gwsData = yield from response.read_and_close()
             tree = ET.fromstring(gwsData.decode("utf-8"))
 
-            yield from msgQ.put(tree)
+            yield from msgQ.put(PreOperationalAgent.Message(tree))
 
 @singledispatch
 def touch(msg):
@@ -162,20 +167,22 @@ def touch(msg):
 
 @asyncio.coroutine
 def operate(loop, msgQ, workers, args, config):
-
+    log = logging.getLogger("cloudhands.burst.operate")
     tasks = [asyncio.Task(w(loop, msgQ)) for w in workers]
+    session = Registry().connect(sqlite3, args.db).session
+    initialise(session)
     while any(task for task in tasks if not task.done()):
         yield from asyncio.sleep(0)
         for worker in workers:
             # Call task query against database
             # Place result on task queue
-            for job in worker.jobs():
+            for job in worker.jobs(session):
                 yield from worker.work.put(job)
 
         try:
             while True:
                 msg = msgQ.get_nowait()
-                touch(msg)
+                log.debug(touch(msg, session))
         except asyncio.QueueEmpty:
             continue
 
@@ -197,9 +204,10 @@ def main(args):
 
     workers = []
     for agentType in (PreOperationalAgent,):
-        workQ = agentType.Queue(loop=loop)
+        workQ = agentType.queue(args, config, loop=loop)
         agent = agentType(workQ, args, config)
-        touch.register(agentType.Message, agent.touch)
+        for typ, handler in agent.callbacks:
+            touch.register(typ, handler)
         workers.append(agent)
 
     loop.run_until_complete(operate(loop, msgQ, workers, args, config))
