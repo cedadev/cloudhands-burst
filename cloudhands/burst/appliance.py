@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
+import asyncio
 from collections import deque
 from collections import namedtuple
 import concurrent.futures

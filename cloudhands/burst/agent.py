@@ -19,7 +19,7 @@ class Agent:
 
     @staticmethod
     def queue(args, config, loop=None):
-        raise NotImplementedError
+        return asyncio.Queue(loop=loop)
 
     @property
     def callbacks(self):

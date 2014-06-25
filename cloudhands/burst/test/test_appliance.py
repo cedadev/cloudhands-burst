@@ -18,3 +18,9 @@ class PreProvisionAgentTesting(unittest.TestCase):
             agent.touch_to_provisioning,
             message_handler.dispatch(PreProvisionAgent.Message)
         )
+
+    def test_queue_creation(self):
+        self.assertIsInstance(
+            PreProvisionAgent.queue(None, None, loop=None),
+            asyncio.Queue
+        )
