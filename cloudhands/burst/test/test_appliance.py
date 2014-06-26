@@ -88,6 +88,87 @@ class PreProvisionAgentTesting(unittest.TestCase):
             asyncio.Queue
         )
 
+    def test_appliance_lifecycle(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+
+        # 0. Set up User
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        # 1. User creates new appliances
+        now = datetime.datetime.utcnow()
+        then = now - datetime.timedelta(seconds=45)
+        requested = session.query(ApplianceState).filter(
+            ApplianceState.name == "requested").one()
+        apps = (
+            Appliance(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org),
+            Appliance(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org),
+            )
+        acts = (
+            Touch(artifact=apps[0], actor=user, state=requested, at=then),
+            Touch(artifact=apps[1], actor=user, state=requested, at=now)
+        )
+
+        tmplt = session.query(CatalogueItem).first()
+        choices = (
+            CatalogueChoice(
+                provider=None, touch=acts[0],
+                **{k: getattr(tmplt, k, None)
+                for k in ("name", "description", "logo")}),
+            CatalogueChoice(
+                provider=None, touch=acts[1],
+                **{k: getattr(tmplt, k, None)
+                for k in ("name", "description", "logo")})
+        )
+        session.add_all(choices)
+        session.commit()
+
+        now = datetime.datetime.utcnow()
+        then = now - datetime.timedelta(seconds=45)
+        configuring = session.query(ApplianceState).filter(
+            ApplianceState.name == "configuring").one()
+        acts = (
+            Touch(artifact=apps[0], actor=user, state=configuring, at=then),
+            Touch(artifact=apps[1], actor=user, state=configuring, at=now)
+        )
+        session.add_all(acts)
+        session.commit()
+
+        self.assertEqual(
+            2, session.query(Touch).join(Appliance).filter(
+            Appliance.id == apps[1].id).count())
+
+        # 2. One Appliance is configured interactively by user
+        latest = apps[1].changes[-1]
+        now = datetime.datetime.utcnow()
+        act = Touch(
+            artifact=apps[1], actor=user, state=latest.state, at=now)
+        label = Label(
+            name="test_server01",
+            description="This is just for kicking tyres",
+            touch=act)
+        session.add(label)
+        session.commit()
+
+        self.assertEqual(
+            3, session.query(Touch).join(Appliance).filter(
+            Appliance.id == apps[1].id).count())
+
+        # 3. When user is happy, clicks 'Go'
+        now = datetime.datetime.utcnow()
+        preprovision = session.query(ApplianceState).filter(
+            ApplianceState.name == "pre_provision").one()
+        act = Touch(
+            artifact=apps[1], actor=user, state=preprovision, at=now)
+        session.add(act)
+        session.commit()
+
 
 class AgentTesting(unittest.TestCase):
 
@@ -134,7 +215,7 @@ class AgentTesting(unittest.TestCase):
         r = Registry()
         r.disconnect(sqlite3, ":memory:")
 
-    def test_agent_finds_jobs(self):
+    def test_appliance_lifecycle(self):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
