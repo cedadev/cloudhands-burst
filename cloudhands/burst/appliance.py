@@ -31,15 +31,40 @@ from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
 
-
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
+
+find_records = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.query.records+xml']")
+
+find_results = functools.partial(find_xpath, "./*")
+
+find_templates = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vAppTemplate+xml']")
 
 find_vdcs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vdc+xml']")
 
-find_records = functools.partial(
-    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.query.records+xml']")
+instantiate_template = """
+<InstantiateVAppTemplateParams xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+name="{appliance_name}" deploy="false" powerOn="false">
+<Description>Testing AppServer</Description>
+<InstantiationParams>
+<NetworkConfigSection>
+    <ovf:Info>The configuration parameters for logical networks</ovf:Info>
+    <NetworkConfig networkName="proxied-external-network">
+    <Configuration>
+        <ParentNetwork name="{network.name}" href="{network.href}"/>
+        <FenceMode>bridged</FenceMode>
+    </Configuration>
+    </NetworkConfig>
+</NetworkConfigSection>
+</InstantiationParams>
+<Source href="{template.href}" />
+</InstantiateVAppTemplateParams>
+"""
+
 
 def hosts(session, state=None):
     query = session.query(Appliance)
@@ -93,6 +118,7 @@ class PreProvisionAgent(Agent):
     @asyncio.coroutine
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
+        ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         while True:
             job = yield from self.work.get()
             app = job.artifact
@@ -150,6 +176,38 @@ class PreProvisionAgent(Agent):
             orgList = yield from response.read_and_close()
             tree = ET.fromstring(orgList.decode("utf-8"))
             orgFound = find_orgs(tree, name=config["vdc"]["org"])
+
+            org = next(orgFound)
+            response = yield from client.request(
+                "GET", org.attrib.get("href"),
+                headers=headers)
+            orgData = yield from response.read_and_close()
+            tree = ET.fromstring(orgData.decode("utf-8"))
+
+            vdcLink = next(find_vdcs(tree))
+            response = yield from client.request(
+                "GET", vdcLink.attrib.get("href"),
+                headers=headers)
+            vdcData = yield from response.read_and_close()
+            tree = ET.fromstring(vdcData.decode("utf-8"))
+            ET.dump(tree)
+
+            # FIXME: a fudge for the demo
+            template = next(find_templates(tree, name="Ubuntu 64-bit"))
+ 
+            # Network details via query to vdc
+            netLink = next(find_records(tree, rel="orgVdcNetworks"))
+            response = yield from client.request(
+                "GET", netLink.attrib.get("href"),
+                headers=headers)
+            netData = yield from response.read_and_close()
+            tree = ET.fromstring(netData.decode("utf-8"))
+            netDetails = next(
+                find_results(tree, name=config["vdc"]["network"]))
+
+            # FIXME!
+            log.debug(instantiate_template.format(
+                template=template,network=netDetails,appliance_name=name))
             #job = exctr.submit(
             #        create_node,
             #        config=config,

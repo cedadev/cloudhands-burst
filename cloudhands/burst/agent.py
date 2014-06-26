@@ -53,11 +53,13 @@ def operate(loop, msgQ, workers, args, config):
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
     pending = set()
+    log.info("Starting task scheduler.")
     while any(task for task in tasks if not task.done()):
         for worker in workers:
             for job in worker.jobs(session):
                 if job.uuid not in pending:
                     pending.add(job.uuid)
+                    log.debug(job)
                     yield from worker.work.put(job)
 
         pause = 0 if pending else 1
