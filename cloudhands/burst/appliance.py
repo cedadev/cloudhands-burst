@@ -53,7 +53,7 @@ class Strategy:
 
 class PreProvisionAgent(Agent):
 
-    Message = namedtuple("ProvisioningMessage", ["content"])
+    Message = namedtuple("ProvisioningMessage", ["uuid", "ts"])
 
     @property
     def callbacks(self):
@@ -64,8 +64,48 @@ class PreProvisionAgent(Agent):
                 if i.changes[-1].state.name == "pre_provision"]
 
     def touch_to_provisioning(self, msg:Message, session):
-        print(msg)
-    
+        provisioning = session.query(ApplianceState).filter(
+            ApplianceState.name == "provisioning").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        user = app.changes[-1].actor
+        act = Touch(artifact=app, actor=user, state=provisioning, at=msg.ts)
+        session.add(act)
+        session.commit()
+        return act
+ 
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ):
+        log = logging.getLogger("cloudhands.burst.appliance.preprovision")
+        while True:
+            app = yield from self.work.get()
+            resources = sorted(
+                (r for c in job.changes for r in c.resources),
+                reverse=True)
+            label = next(i for i in resources if isinstance(i, Label))
+            choice = next(i for i in resources if isinstance(i, CatalogueChoice))
+            name = label.name
+            image = choice.name
+            config = Strategy.recommend(app)
+            network = config.get("vdc", "network", fallback=None)
+            #job = exctr.submit(
+            #        create_node,
+            #        config=config,
+            #        name=label.name,
+            #        image=image.name if image else None,
+            #        network=network)
+            #    jobs[job] = app
+
+            now = datetime.datetime.utcnow()
+            provisioning = self.session.query(ApplianceState).filter(
+                ApplianceState.name == "provisioning").one()
+            user = job.changes[-1].actor
+            app.changes.append(
+                Touch(artifact=app, actor=user, state=provisioning, at=now))
+            self.session.commit()
+            log.info("Appliance {} is provisioning".format(app.uuid))
+
+
 ### Old code below for deletion ####
 class ApplianceAgent:
 
