@@ -34,7 +34,7 @@ class Agent:
 
 
 @singledispatch
-def message_handler(msg):
+def message_handler(msg, *args, **kwargs):
     warnings.warn("No handler for {}".format(type(msg)))
     pass
 
@@ -53,6 +53,6 @@ def operate(loop, msgQ, workers, args, config):
         try:
             while True:
                 msg = msgQ.get_nowait()
-                log.debug(touch(msg, session))
+                log.debug(message_handler(msg, session))
         except asyncio.QueueEmpty:
             continue

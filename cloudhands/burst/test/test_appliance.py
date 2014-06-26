@@ -180,6 +180,35 @@ class PreProvisionAgentTesting(unittest.TestCase):
         job = q.get_nowait()
         self.assertEqual(4, len(job.changes))
 
+    def test_msg_dispatch_and_touch(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        now = datetime.datetime.utcnow()
+        requested = session.query(ApplianceState).filter(
+            ApplianceState.name == "requested").one()
+        app = Appliance(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            )
+        act = Touch(artifact=app, actor=user, state=requested, at=now)
+        session.add(act)
+        session.commit()
+
+        q = PreProvisionAgent.queue(None, None, loop=None)
+        agent = PreProvisionAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+
+        msg = PreProvisionAgent.Message(app.uuid, datetime.datetime.utcnow())
+        rv = message_handler(msg, session)
+        self.assertIsInstance(rv, Touch)
+
+        self.assertEqual("provisioning", app.changes[-1].state.name)
+
+
 class AgentTesting(unittest.TestCase):
 
     def setUp(self):
