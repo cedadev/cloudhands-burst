@@ -178,7 +178,7 @@ class PreProvisionAgentTesting(unittest.TestCase):
         self.assertEqual(1, q.qsize())
 
         job = q.get_nowait()
-        self.assertEqual(4, len(job.changes))
+        self.assertEqual(4, len(job.artifact.changes))
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session

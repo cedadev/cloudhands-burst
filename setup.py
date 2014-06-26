@@ -45,6 +45,7 @@ setup(
         },
     install_requires=[
         "cloudhands-common>=0.20",
+        "aiohttp>=0.8.2",
         "apache-libcloud>=0.13.0",
         ],
     entry_points={

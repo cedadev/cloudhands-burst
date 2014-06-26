@@ -6,12 +6,19 @@ from collections import deque
 from collections import namedtuple
 import concurrent.futures
 import datetime
+import functools
 import logging
+import operator
+import xml.etree.ElementTree as ET
+
+import aiohttp
 
 from cloudhands.burst.agent import Agent
+from cloudhands.burst.agent import Job
 from cloudhands.burst.control import create_node
 from cloudhands.burst.control import describe_node
 from cloudhands.burst.control import destroy_node
+from cloudhands.burst.utils import find_xpath
 from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
@@ -24,6 +31,15 @@ from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
 
+
+find_orgs = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
+
+find_vdcs = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vdc+xml']")
+
+find_records = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.query.records+xml']")
 
 def hosts(session, state=None):
     query = session.query(Appliance)
@@ -60,7 +76,7 @@ class PreProvisionAgent(Agent):
         return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
 
     def jobs(self, session):
-        return [i for i in session.query(Appliance).all()
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_provision"]
 
     def touch_to_provisioning(self, msg:Message, session):
@@ -78,9 +94,11 @@ class PreProvisionAgent(Agent):
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
         while True:
-            app = yield from self.work.get()
+            job = yield from self.work.get()
+            app = job.artifact
             resources = sorted(
-                (r for c in job.changes for r in c.resources),
+                (r for c in app.changes for r in c.resources),
+                key=operator.attrgetter("touch.at"),
                 reverse=True)
             label = next(i for i in resources if isinstance(i, Label))
             choice = next(i for i in resources if isinstance(i, CatalogueChoice))
@@ -88,6 +106,47 @@ class PreProvisionAgent(Agent):
             image = choice.name
             config = Strategy.recommend(app)
             network = config.get("vdc", "network", fallback=None)
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            # TODO: We have to store tokens in the database
+            response = yield from client.request(
+                "POST", url,
+                auth=(config["user"]["name"], config["user"]["pass"]),
+                headers=headers)
+                #connector=connector)
+                #request_class=requestClass)
+            headers["x-vcloud-authorization"] = response.headers.get(
+                "x-vcloud-authorization")
+
+
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/org")
+            response = yield from client.request(
+                "GET", url,
+                headers=headers)
+
+            orgList = yield from response.read_and_close()
+            tree = ET.fromstring(orgList.decode("utf-8"))
+            orgFound = find_orgs(tree, name=config["vdc"]["org"])
             #job = exctr.submit(
             #        create_node,
             #        config=config,
@@ -96,14 +155,9 @@ class PreProvisionAgent(Agent):
             #        network=network)
             #    jobs[job] = app
 
-            now = datetime.datetime.utcnow()
-            provisioning = self.session.query(ApplianceState).filter(
-                ApplianceState.name == "provisioning").one()
-            user = job.changes[-1].actor
-            app.changes.append(
-                Touch(artifact=app, actor=user, state=provisioning, at=now))
-            self.session.commit()
-            log.info("Appliance {} is provisioning".format(app.uuid))
+            msg = PreProvisionAgent.Message(
+                app.uuid, datetime.datetime.utcnow())
+            yield from msgQ.put(msg)
 
 
 ### Old code below for deletion ####

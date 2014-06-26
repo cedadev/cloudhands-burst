@@ -2,6 +2,7 @@
 # encoding: UTF-8
 
 import argparse
+import asyncio
 import datetime
 import logging
 from logging.handlers import WatchedFileHandler
@@ -10,7 +11,10 @@ import sqlite3
 import sys
 import time
 
-from cloudhands.burst.appliance import ApplianceAgent
+from cloudhands.burst.agent import message_handler
+from cloudhands.burst.agent import operate
+from cloudhands.burst.appliance import ApplianceAgent # TODO: remove
+from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
@@ -48,6 +52,24 @@ def main(args):
     log.addHandler(ch)
 
     portalName, config = next(iter(settings.items()))
+    loop = asyncio.get_event_loop()
+    msgQ = asyncio.Queue(loop=loop)
+
+    workers = []
+    for agentType in (
+        PreProvisionAgent,
+    ):
+        workQ = agentType.queue(args, config, loop=loop)
+        agent = agentType(workQ, args, config)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+        workers.append(agent)
+
+    loop.run_until_complete(operate(loop, msgQ, workers, args, config))
+    loop.close()
+
+    return 0
+    ### Old code below for deletion ####
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
 
