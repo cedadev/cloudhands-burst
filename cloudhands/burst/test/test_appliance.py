@@ -88,7 +88,7 @@ class PreProvisionAgentTesting(unittest.TestCase):
             asyncio.Queue
         )
 
-    def test_appliance_lifecycle(self):
+    def test_job_query_and_transmit(self):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
@@ -169,6 +169,16 @@ class PreProvisionAgentTesting(unittest.TestCase):
         session.add(act)
         session.commit()
 
+        q = PreProvisionAgent.queue(None, None, loop=None)
+        agent = PreProvisionAgent(q, args=None, config=None)
+        jobs = agent.jobs(session)
+        self.assertEqual(1, len(jobs))
+
+        q.put_nowait(jobs[0])
+        self.assertEqual(1, q.qsize())
+
+        job = q.get_nowait()
+        self.assertEqual(4, len(job.changes))
 
 class AgentTesting(unittest.TestCase):
 

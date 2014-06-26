@@ -59,6 +59,10 @@ class PreProvisionAgent(Agent):
     def callbacks(self):
         return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
 
+    def jobs(self, session):
+        return [i for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "pre_provision"]
+
     def touch_to_provisioning(self, msg:Message, session):
         print(msg)
     
