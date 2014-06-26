@@ -38,6 +38,27 @@ size="big" />
 </OrgList>
 """
 
+xml_instantiatevapp = """
+<InstantiateVAppTemplateParams
+xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+name="Charlie-TEST5" deploy="false" powerOn="false">
+<Description>Testing AppServer</Description>
+<InstantiationParams>
+<NetworkConfigSection>
+<ovf:Info>The configuration parameters for logical networks</ovf:Info>
+<NetworkConfig networkName="proxied-external-network">
+<Configuration>
+<ParentNetwork name="un-managed-external-network"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/9604bd58-b05c-4fa3-9f9b-4e7991376f21"/>
+<FenceMode>bridged</FenceMode>
+</Configuration>
+</NetworkConfig>
+</NetworkConfigSection>
+</InstantiationParams>
+<Source href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vAppTemplate/vappTemplate-1964b597-5477-4513-b126-4e6baa6032d6" />
+</InstantiateVAppTemplateParams>
+"""
+
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
 

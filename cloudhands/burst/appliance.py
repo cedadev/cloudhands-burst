@@ -106,6 +106,8 @@ class PreProvisionAgent(Agent):
             image = choice.name
             config = Strategy.recommend(app)
             network = config.get("vdc", "network", fallback=None)
+            
+            # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
                 host=config["host"]["name"],
@@ -124,7 +126,6 @@ class PreProvisionAgent(Agent):
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
 
-            # TODO: We have to store tokens in the database
             response = yield from client.request(
                 "POST", url,
                 auth=(config["user"]["name"], config["user"]["pass"]),
@@ -134,6 +135,8 @@ class PreProvisionAgent(Agent):
             headers["x-vcloud-authorization"] = response.headers.get(
                 "x-vcloud-authorization")
 
+
+            # FIXME: End of login code
 
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
