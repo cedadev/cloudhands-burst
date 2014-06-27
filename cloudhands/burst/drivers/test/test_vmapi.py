@@ -5,6 +5,9 @@ import functools
 import unittest
 import xml.etree.ElementTree as ET
 
+from chameleon import PageTemplateFile
+import pkg_resources
+
 from cloudhands.burst.appliance import find_orgs
 from cloudhands.burst.appliance import find_results
 from cloudhands.burst.utils import find_xpath
@@ -114,3 +117,26 @@ class XMLTests(unittest.TestCase):
         self.assertEqual(
             1, len(list(find_results(
                 tree, name="un-managed-external-network"))))
+
+class APITemplateTests(unittest.TestCase):
+
+    def setUp(self):
+        self.macro = PageTemplateFile(pkg_resources.resource_filename(
+            "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
+
+    def test_render(self):
+        data = {
+            "appliance": {
+                "name": "My Test VM",
+                "description": "This VM is for testing",
+            },
+            "network": {
+                "name": "managed-external-network",
+                "href": "http://cloud/api/networks/12345678"
+            },
+            "template": {
+                "name": "Ubuntu",
+                "href": "http://cloud/api/items/12345678"
+            }
+        }
+        self.assertEqual(733, len(self.macro(**data)))

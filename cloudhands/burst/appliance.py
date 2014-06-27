@@ -12,6 +12,8 @@ import operator
 import xml.etree.ElementTree as ET
 
 import aiohttp
+from chameleon import PageTemplateFile
+import pkg_resources
 
 from cloudhands.burst.agent import Agent
 from cloudhands.burst.agent import Job
@@ -45,25 +47,6 @@ find_templates = functools.partial(
 find_vdcs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vdc+xml']")
 
-instantiate_template = """
-<InstantiateVAppTemplateParams xmlns="http://www.vmware.com/vcloud/v1.5"
-xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
-name="{appliance_name}" deploy="false" powerOn="false">
-<Description>Testing AppServer</Description>
-<InstantiationParams>
-<NetworkConfigSection>
-    <ovf:Info>The configuration parameters for logical networks</ovf:Info>
-    <NetworkConfig networkName="proxied-external-network">
-    <Configuration>
-        <ParentNetwork name="{network.name}" href="{network.href}"/>
-        <FenceMode>bridged</FenceMode>
-    </Configuration>
-    </NetworkConfig>
-</NetworkConfigSection>
-</InstantiationParams>
-<Source href="{template.href}" />
-</InstantiateVAppTemplateParams>
-"""
 
 
 def hosts(session, state=None):
@@ -119,6 +102,8 @@ class PreProvisionAgent(Agent):
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        #macro = PageTemplateFile(pkg_resources.resource_filename(
+        #    "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
         while True:
             job = yield from self.work.get()
             app = job.artifact
@@ -128,7 +113,6 @@ class PreProvisionAgent(Agent):
                 reverse=True)
             label = next(i for i in resources if isinstance(i, Label))
             choice = next(i for i in resources if isinstance(i, CatalogueChoice))
-            name = label.name
             image = choice.name
             config = Strategy.recommend(app)
             network = config.get("vdc", "network", fallback=None)
@@ -190,7 +174,6 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             vdcData = yield from response.read_and_close()
             tree = ET.fromstring(vdcData.decode("utf-8"))
-            ET.dump(tree)
 
             # FIXME: a fudge for the demo
             template = next(find_templates(tree, name="Ubuntu 64-bit"))
@@ -202,12 +185,26 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             netData = yield from response.read_and_close()
             tree = ET.fromstring(netData.decode("utf-8"))
-            netDetails = next(
-                find_results(tree, name=config["vdc"]["network"]))
+            #netDetails = next(
+            #    find_results(tree, name=config["vdc"]["network"]))
 
-            # FIXME!
-            log.debug(instantiate_template.format(
-                template=template,network=netDetails,appliance_name=name))
+            """
+            data = {
+                "appliance": {
+                    "name": label.name,
+                    "description": "FIXME: Description",
+                },
+                "network": {
+                    "name": config["vdc"]["network"],
+                    "href": netDetails.attrib.get("href"),
+                },
+                "template": {
+                    "name": template.attrib.get("name"),
+                    "href": template.attrib.get("href"),
+                }
+            }
+            """
+            #log.debug(macro(**data))
             #job = exctr.submit(
             #        create_node,
             #        config=config,

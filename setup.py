@@ -40,13 +40,16 @@ setup(
         ],
     package_data={
         "cloudhands.burst": [],
-        "cloudhands.burst.drivers": [],
+        "cloudhands.burst.drivers": [
+            "*.pt",
+        ],
         "cloudhands.burst.test": [],
         },
     install_requires=[
         "cloudhands-common>=0.20",
         "aiohttp>=0.8.2",
         "apache-libcloud>=0.13.0",
+        "Chameleon>=2.14",
         ],
     entry_points={
         "console_scripts": [
