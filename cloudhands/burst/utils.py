@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 # encoding: UTF-8
 
-def find_xpath(xpath, tree, **kwargs):
-    elements = tree.iterfind(xpath)
+def find_xpath(xpath, tree, namespaces={}, **kwargs):
+    elements = tree.iterfind(xpath, namespaces=namespaces)
     if not kwargs:
         return elements
     else:

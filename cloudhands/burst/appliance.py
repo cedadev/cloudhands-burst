@@ -42,7 +42,8 @@ find_records = functools.partial(
 find_results = functools.partial(find_xpath, "./*")
 
 find_templates = functools.partial(
-    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vAppTemplate+xml']")
+    find_xpath, ".//*[@type='application/vnd.vmware.vcloud.vAppTemplate+xml']",
+    namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
 
 find_vdcs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vdc+xml']")
@@ -116,7 +117,7 @@ class PreProvisionAgent(Agent):
             image = choice.name
             config = Strategy.recommend(app)
             network = config.get("vdc", "network", fallback=None)
-            
+
             # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
@@ -161,14 +162,22 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(orgList.decode("utf-8"))
             orgFound = find_orgs(tree, name=config["vdc"]["org"])
 
-            org = next(orgFound)
+            try:
+                org = next(orgFound)
+            except StopIteration:
+                log.error(orgFound)
+
             response = yield from client.request(
                 "GET", org.attrib.get("href"),
                 headers=headers)
             orgData = yield from response.read_and_close()
             tree = ET.fromstring(orgData.decode("utf-8"))
 
-            vdcLink = next(find_vdcs(tree))
+            try:
+                vdcLink = next(find_vdcs(tree))
+            except StopIteration:
+                log.error("Failed to find VDC")
+
             response = yield from client.request(
                 "GET", vdcLink.attrib.get("href"),
                 headers=headers)
@@ -176,10 +185,20 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(vdcData.decode("utf-8"))
 
             # FIXME: a fudge for the demo
-            template = next(find_templates(tree, name="Ubuntu 64-bit"))
+            templates = list(find_templates(tree))
+            log.debug(templates)
+            try:
+                template = templates[0]
+            except IndexError:
+                log.error("Failed to find template")
+                ET.dump(tree)
  
             # Network details via query to vdc
-            netLink = next(find_records(tree, rel="orgVdcNetworks"))
+            try:
+                netLink = next(
+                    find_records(tree, rel="orgVdcNetworks"))
+            except StopIteration:
+                log.error("Failed to find network")
             response = yield from client.request(
                 "GET", netLink.attrib.get("href"),
                 headers=headers)
@@ -188,6 +207,7 @@ class PreProvisionAgent(Agent):
             #netDetails = next(
             #    find_results(tree, name=config["vdc"]["network"]))
 
+            log.debug(tree)
             """
             data = {
                 "appliance": {
