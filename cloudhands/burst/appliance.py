@@ -103,8 +103,8 @@ class PreProvisionAgent(Agent):
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
-        #macro = PageTemplateFile(pkg_resources.resource_filename(
-        #    "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
+        macro = PageTemplateFile(pkg_resources.resource_filename(
+            "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
         while True:
             job = yield from self.work.get()
             app = job.artifact
@@ -204,11 +204,10 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             netData = yield from response.read_and_close()
             tree = ET.fromstring(netData.decode("utf-8"))
-            #netDetails = next(
-            #    find_results(tree, name=config["vdc"]["network"]))
+            netDetails = next(
+                find_results(tree, name=config["vdc"]["network"]))
 
             log.debug(tree)
-            """
             data = {
                 "appliance": {
                     "name": label.name,
@@ -223,8 +222,19 @@ class PreProvisionAgent(Agent):
                     "href": template.attrib.get("href"),
                 }
             }
-            """
-            #log.debug(macro(**data))
+
+            url = "{vdc}/{endpoint}".format(
+                vdc=vdcLink.attrib.get("href"),
+                endpoint="action/instantiateVAppTemplate")
+            headers["Content-Type"] = (
+            "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
+            response = yield from client.request(
+                "POST", url,
+                headers=headers,
+                data=macro(**data).encode("utf-8"))
+            reply = yield from response.read_and_close()
+
+            log.debug(reply)
             #job = exctr.submit(
             #        create_node,
             #        config=config,
