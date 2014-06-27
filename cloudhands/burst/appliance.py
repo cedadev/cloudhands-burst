@@ -33,6 +33,13 @@ from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
 
+find_catalogueitems = functools.partial(
+    find_xpath, ".//*[@type='application/vnd.vmware.vcloud.catalogItem+xml']",
+    namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
+
+find_catalogues = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.vcloud.catalog+xml']")
+
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
 
@@ -172,17 +179,33 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             orgData = yield from response.read_and_close()
             tree = ET.fromstring(orgData.decode("utf-8"))
-
             try:
                 vdcLink = next(find_vdcs(tree))
             except StopIteration:
                 log.error("Failed to find VDC")
 
+            try:
+                catalogue = next(
+                    find_catalogues(tree, name="Public catalog"))
+            except StopIteration:
+                log.error("Failed to find catalogue")
+
             response = yield from client.request(
-                "GET", vdcLink.attrib.get("href"),
+                "GET", catalogue.attrib.get("href"),
                 headers=headers)
-            vdcData = yield from response.read_and_close()
-            tree = ET.fromstring(vdcData.decode("utf-8"))
+            catalogueData = yield from response.read_and_close()
+            tree = ET.fromstring(catalogueData.decode("utf-8"))
+            try:
+                # FIXME:
+                catalogueItem = next(
+                    find_catalogueitems(tree, name="centos6-stemcell"))
+            except StopIteration:
+                log.error("Failed to find catalogue item")
+            response = yield from client.request(
+                "GET", catalogueItem.attrib.get("href"),
+                headers=headers)
+            catalogueItemData = yield from response.read_and_close()
+            tree = ET.fromstring(catalogueItemData.decode("utf-8"))
 
             # FIXME: a fudge for the demo
             templates = list(find_templates(tree))
@@ -193,6 +216,13 @@ class PreProvisionAgent(Agent):
                 log.error("Failed to find template")
                 ET.dump(tree)
  
+            # Can also finding templates in VDC
+            response = yield from client.request(
+                "GET", vdcLink.attrib.get("href"),
+                headers=headers)
+            vdcData = yield from response.read_and_close()
+            tree = ET.fromstring(vdcData.decode("utf-8"))
+
             # Network details via query to vdc
             try:
                 netLink = next(
@@ -228,20 +258,15 @@ class PreProvisionAgent(Agent):
                 endpoint="action/instantiateVAppTemplate")
             headers["Content-Type"] = (
             "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
+            payload = macro(**data)
+            log.debug(payload)
             response = yield from client.request(
                 "POST", url,
                 headers=headers,
-                data=macro(**data).encode("utf-8"))
+                data=payload.encode("utf-8"))
             reply = yield from response.read_and_close()
 
             log.debug(reply)
-            #job = exctr.submit(
-            #        create_node,
-            #        config=config,
-            #        name=label.name,
-            #        image=image.name if image else None,
-            #        network=network)
-            #    jobs[job] = app
 
             msg = PreProvisionAgent.Message(
                 app.uuid, datetime.datetime.utcnow())

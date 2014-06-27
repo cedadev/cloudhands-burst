@@ -8,10 +8,72 @@ import xml.etree.ElementTree as ET
 from chameleon import PageTemplateFile
 import pkg_resources
 
+from cloudhands.burst.appliance import find_catalogueitems
 from cloudhands.burst.appliance import find_orgs
 from cloudhands.burst.appliance import find_results
 from cloudhands.burst.appliance import find_templates
 from cloudhands.burst.utils import find_xpath
+
+xml_catalog = """
+<Catalog xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f"
+id="urn:vcloud:catalog:e7025d98-6591-4c2d-90d6-63cb7aaa8a3f" name="Public
+catalog" type="application/vnd.vmware.vcloud.catalog+xml"
+xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
+http://172.16.151.139/api/v1.5/schema/master.xsd">
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/94704688-a5e2-4336-a54d-feecd56c82aa"
+rel="up" type="application/vnd.vmware.vcloud.org+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/metadata"
+rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/catalogItems"
+rel="add" type="application/vnd.vmware.vcloud.catalogItem+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/action/upload"
+rel="add" type="application/vnd.vmware.vcloud.media+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/action/upload"
+rel="add" type="application/vnd.vmware.vcloud.uploadVAppTemplateParams+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/action/copy"
+rel="copy"
+type="application/vnd.vmware.vcloud.copyOrMoveCatalogItemParams+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/action/move"
+rel="move"
+type="application/vnd.vmware.vcloud.copyOrMoveCatalogItemParams+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalog/e7025d98-6591-4c2d-90d6-63cb7aaa8a3f/action/captureVApp"
+rel="add" type="application/vnd.vmware.vcloud.captureVAppParams+xml" />
+    <Description>This template is asscesible to all other organisaitons. Only
+public templates for use by other vCloud organisaiotns should be placed in
+here.</Description>
+    <CatalogItems>
+        <CatalogItem
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalogItem/12aa90b3-811c-4e06-8210-a32d74129bc5"
+id="12aa90b3-811c-4e06-8210-a32d74129bc5" name="centos6-stemcell"
+type="application/vnd.vmware.vcloud.catalogItem+xml" />
+        <CatalogItem
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalogItem/92525027-3e51-48a8-9376-4b4f80fc9e86"
+id="92525027-3e51-48a8-9376-4b4f80fc9e86" name="cm002.cems.rl.ac.uk"
+type="application/vnd.vmware.vcloud.catalogItem+xml" />
+        <CatalogItem
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalogItem/b37615a3-0657-4602-bd83-5f5593f5e05e"
+id="b37615a3-0657-4602-bd83-5f5593f5e05e" name="ubuntu-14.04-server-amd64.iso"
+type="application/vnd.vmware.vcloud.catalogItem+xml" />
+        <CatalogItem
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/catalogItem/bdd0f6e9-7d02-45c4-8b96-0bea3139f592"
+id="bdd0f6e9-7d02-45c4-8b96-0bea3139f592" name="stemcell-test"
+type="application/vnd.vmware.vcloud.catalogItem+xml" />
+    </CatalogItems>
+    <IsPublished>true</IsPublished>
+    <DateCreated>2014-04-11T09:42:47.407+01:00</DateCreated>
+    <VersionNumber>21</VersionNumber>
+</Catalog>
+"""
 
 xml_orglist = """
 <OrgList xmlns="http://www.vmware.com/vcloud/v1.5"
@@ -232,6 +294,12 @@ class XMLTests(unittest.TestCase):
         tree = ET.fromstring(xml_orglist)
         self.assertEqual(
             1, len(list(find_orgs(tree, size="big", colour="red"))))
+
+    def test_querycatalogitems_by_name(self):
+        tree = ET.fromstring(xml_catalog)
+        self.assertEqual(
+            1, len(list(find_catalogueitems(
+                tree, name="centos6-stemcell"))))
 
     def test_queryresultrecords_by_name(self):
         tree = ET.fromstring(xml_queryresultrecords)
