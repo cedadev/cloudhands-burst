@@ -28,7 +28,7 @@ from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 
 
-class PreProvisionAgentTesting(unittest.TestCase):
+class AgentTesting(unittest.TestCase):
 
     def setUp(self):
         """ Populate test database"""
@@ -38,16 +38,13 @@ class PreProvisionAgentTesting(unittest.TestCase):
             for v in ApplianceState.values)
         session.add(
             Component(handle="burst.controller", uuid=uuid.uuid4().hex))
-        session.add(Provider(
-            name="cloudhands.jasmin.vcloud.phase04.cfg",
-            uuid=uuid.uuid4().hex))
         session.add_all((
             Organisation(
                 uuid=uuid.uuid4().hex,
                 name="TestOrg"),
             Provider(
                 uuid=uuid.uuid4().hex,
-                name="testcloud.io"),
+                name="cloudhands.jasmin.vcloud.phase04.cfg"),
             )
         )
         session.commit()
@@ -77,6 +74,9 @@ class PreProvisionAgentTesting(unittest.TestCase):
         """ Every test gets its own in-memory database """
         r = Registry()
         r.disconnect(sqlite3, ":memory:")
+
+
+class PreProvisionAgentTesting(AgentTesting):
 
     def test_handler_registration(self):
         q = asyncio.Queue()
@@ -221,50 +221,7 @@ class PreProvisionAgentTesting(unittest.TestCase):
         self.assertEqual("provisioning", app.changes[-1].state.name)
 
 
-class AgentTesting(unittest.TestCase):
-
-    def setUp(self):
-        """ Populate test database"""
-        session = Registry().connect(sqlite3, ":memory:").session
-        session.add_all(
-            State(fsm=ApplianceState.table, name=v)
-            for v in ApplianceState.values)
-        session.add_all((
-            Organisation(
-                uuid=uuid.uuid4().hex,
-                name="TestOrg"),
-            Provider(
-                uuid=uuid.uuid4().hex,
-                name="testcloud.io"),
-            )
-        )
-        session.commit()
-
-        org = session.query(Organisation).one()
-        session.add_all((
-            CatalogueItem(
-                uuid=uuid.uuid4().hex,
-                name="Web Server",
-                description="Apache server VM",
-                note=None,
-                logo=None,
-                organisation=org,
-            ),
-            CatalogueItem(
-                uuid=uuid.uuid4().hex,
-                name="File Server",
-                description="OpenSSH server VM",
-                note=None,
-                logo=None,
-                organisation=org,
-            )
-        ))
-        session.commit()
-
-    def tearDown(self):
-        """ Every test gets its own in-memory database """
-        r = Registry()
-        r.disconnect(sqlite3, ":memory:")
+class ApplianceTesting(AgentTesting):
 
     def test_appliance_lifecycle(self):
         session = Registry().connect(sqlite3, ":memory:").session

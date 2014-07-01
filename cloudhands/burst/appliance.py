@@ -83,6 +83,23 @@ class Strategy:
         return Strategy.config(providerName)
 
 
+class PreCheckAgent(Agent):
+
+    #def touch_to_provisioning(self, msg:Message, session):
+    def touch_to_provisioning(self, msg, session):
+        label = self.session.query(Label).join(Touch).join(Appliance).filter(
+            Appliance.id == app.id).first()
+        provider = self.session.query(Provider).filter(
+            Provider.name==config["metadata"]["path"]).one()
+        act = Touch(
+            artifact=app, actor=user, state=pre_operational, at=now)
+        resource = Node(
+            name=label.name, touch=act, provider=provider,
+            uri=node.id)
+        self.session.add(resource)
+        log.info("{} created: {}".format(label.name, node.id))
+
+
 class PreProvisionAgent(Agent):
 
     Message = namedtuple(
@@ -287,23 +304,6 @@ class PreProvisionAgent(Agent):
                 vApp.attrib.get("href")
             )
             yield from msgQ.put(msg)
-
-
-class ProvisioningAgent(Agent):
-
-    #def touch_to_provisioning(self, msg:Message, session):
-    def touch_to_provisioning(self, msg, session):
-        label = self.session.query(Label).join(Touch).join(Appliance).filter(
-            Appliance.id == app.id).first()
-        provider = self.session.query(Provider).filter(
-            Provider.name==config["metadata"]["path"]).one()
-        act = Touch(
-            artifact=app, actor=user, state=pre_operational, at=now)
-        resource = Node(
-            name=label.name, touch=act, provider=provider,
-            uri=node.id)
-        self.session.add(resource)
-        log.info("{} created: {}".format(label.name, node.id))
 
 
 ### Old code below for deletion ####
