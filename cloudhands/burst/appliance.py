@@ -85,8 +85,26 @@ class Strategy:
 
 class PreCheckAgent(Agent):
 
-    #def touch_to_provisioning(self, msg:Message, session):
-    def touch_to_provisioning(self, msg, session):
+    CheckedAsOperational = namedtuple(
+        "CheckedAsOperational", ["uuid", "ts", "provider", "uri"])
+
+    CheckedAsPreOperational = namedtuple(
+        "CheckedAsPreOperational", ["uuid", "ts", "provider", "uri"])
+
+    def touch_to_operational(self, msg:CheckedAsOperational, session):
+        label = self.session.query(Label).join(Touch).join(Appliance).filter(
+            Appliance.id == app.id).first()
+        provider = self.session.query(Provider).filter(
+            Provider.name==config["metadata"]["path"]).one()
+        act = Touch(
+            artifact=app, actor=user, state=pre_operational, at=now)
+        resource = Node(
+            name=label.name, touch=act, provider=provider,
+            uri=node.id)
+        self.session.add(resource)
+        log.info("{} created: {}".format(label.name, node.id))
+
+    def touch_to_preoperational(self, msg:CheckedAsPreOperational, session):
         label = self.session.query(Label).join(Touch).join(Appliance).filter(
             Appliance.id == app.id).first()
         provider = self.session.query(Provider).filter(

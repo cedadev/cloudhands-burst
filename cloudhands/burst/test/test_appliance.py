@@ -8,6 +8,7 @@ import unittest
 import uuid
 
 from cloudhands.burst.agent import message_handler
+from cloudhands.burst.appliance import PreCheckAgent
 from cloudhands.burst.appliance import PreProvisionAgent
 
 import cloudhands.common
@@ -74,6 +75,29 @@ class AgentTesting(unittest.TestCase):
         """ Every test gets its own in-memory database """
         r = Registry()
         r.disconnect(sqlite3, ":memory:")
+
+
+class PreCheckAgentTesting(AgentTesting):
+
+    def test_handler_registration(self):
+        q = asyncio.Queue()
+        agent = PreCheckAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+        self.assertEqual(
+            agent.touch_to_operational,
+            message_handler.dispatch(PreCheckAgent.CheckedAsOperational)
+        )
+        self.assertEqual(
+            agent.touch_to_preoperational,
+            message_handler.dispatch(PreCheckAgent.CheckedAsPreOperational)
+        )
+
+    def test_queue_creation(self):
+        self.assertIsInstance(
+            PreCheckAgent.queue(None, None, loop=None),
+            asyncio.Queue
+        )
 
 
 class PreProvisionAgentTesting(AgentTesting):
