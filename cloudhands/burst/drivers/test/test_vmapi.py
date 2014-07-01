@@ -75,6 +75,18 @@ type="application/vnd.vmware.vcloud.catalogItem+xml" />
 </Catalog>
 """
 
+xml_error = """
+<Error xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" majorErrorCode="400"
+message="The VCD entity test_16 already exists."
+minorErrorCode="DUPLICATE_NAME"
+stackTrace="com.vmware.vcloud.api.presentation.service.DuplicateNameException:
+The VCD entity test_16 already exists.  at
+com.vmware.ssdc.backend.services.impl.VAppManagerImpl.convertDuplicateNameException(VAppManagerImpl.java:1074) ...
+xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
+http://172.16.151.139/api/v1.5/schema/master.xsd" />
+"""
+
 xml_orglist = """
 <OrgList xmlns="http://www.vmware.com/vcloud/v1.5"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
@@ -131,6 +143,75 @@ taskStatus="success"
 vdc="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44"
 vdcName="un-managed_tenancy_test_org-std-compute-PAYG" />
 </QueryResultRecords>"""
+
+xml_vapp = """
+<VApp xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" deployed="false"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463"
+id="urn:vcloud:vapp:803919bb-25c8-449e-81a8-877732212463" name="test_01"
+ovfDescriptorUploaded="true" status="0"
+type="application/vnd.vmware.vcloud.vApp+xml"
+xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
+http://172.16.151.139/api/v1.5/schema/master.xsd">
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/network/30af3ea4-8b87-4ea7-b5af-457c9e610417"
+name="un-managed-external-network" rel="down"
+type="application/vnd.vmware.vcloud.vAppNetwork+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463/controlAccess/"
+rel="down" type="application/vnd.vmware.vcloud.controlAccess+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44"
+rel="up" type="application/vnd.vmware.vcloud.vdc+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463/owner"
+rel="down" type="application/vnd.vmware.vcloud.owner+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463/metadata"
+rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463/ovf"
+rel="ovf" type="text/xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463/productSections/"
+rel="down" type="application/vnd.vmware.vcloud.productSections+xml" />
+    <Description>FIXME: Description</Description>
+    <Tasks>
+        <Task cancelRequested="false"
+expiryTime="2014-09-29T09:09:36.709+01:00"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/task/26a1ff7e-9bdc-4499-b109-50e0063ab95a"
+id="urn:vcloud:task:26a1ff7e-9bdc-4499-b109-50e0063ab95a" name="task"
+operation="Creating Virtual Application
+test_01(803919bb-25c8-449e-81a8-877732212463)"
+operationName="vdcInstantiateVapp" serviceNamespace="com.vmware.vcloud"
+startTime="2014-07-01T09:09:36.709+01:00" status="running"
+type="application/vnd.vmware.vcloud.task+xml">
+            <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/task/26a1ff7e-9bdc-4499-b109-50e0063ab95a/action/cancel"
+rel="task:cancel" />
+            <Owner
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-803919bb-25c8-449e-81a8-877732212463"
+name="test_01" type="application/vnd.vmware.vcloud.vApp+xml" />
+            <User
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/user/04689d16-a695-4ccd-bce2-7c5a5cf7fff3"
+name="system" type="application/vnd.vmware.admin.user+xml" />
+            <Organization
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/6483ae7d-2307-4856-a1c9-109751545b4c"
+name="un-managed_tenancy_test_org"
+type="application/vnd.vmware.vcloud.org+xml" />
+            <Progress>1</Progress>
+            <Details />
+        </Task>
+    </Tasks>
+    <DateCreated>2014-07-01T09:09:36.030+01:00</DateCreated>
+    <Owner type="application/vnd.vmware.vcloud.owner+xml">
+        <User
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/user/cc8a9479-be2d-40c2-8347-b5a0a55d160c"
+name="system" type="application/vnd.vmware.admin.user+xml" />
+    </Owner>
+    <InMaintenanceMode>false</InMaintenanceMode>
+</VApp>
+"""
 
 xml_vdc = """
 <Vdc xmlns="http://www.vmware.com/vcloud/v1.5"
@@ -306,6 +387,11 @@ class XMLTests(unittest.TestCase):
         self.assertEqual(
             1, len(list(find_results(
                 tree, name="un-managed-external-network"))))
+
+    def test_vapp_from_vapp(self):
+        tree = ET.fromstring(xml_vapp)
+        bits = list(find_xpath(".", tree, name="test_01"))
+        self.assertEqual(1, len(bits))
 
     def test_vapptemplate_from_vdc(self):
         tree = ET.fromstring(xml_vdc)

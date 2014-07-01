@@ -16,6 +16,7 @@ from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import CatalogueItem
+from cloudhands.common.schema import Component
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Label
 from cloudhands.common.schema import Node
@@ -35,6 +36,11 @@ class PreProvisionAgentTesting(unittest.TestCase):
         session.add_all(
             State(fsm=ApplianceState.table, name=v)
             for v in ApplianceState.values)
+        session.add(
+            Component(handle="burst.controller", uuid=uuid.uuid4().hex))
+        session.add(Provider(
+            name="cloudhands.jasmin.vcloud.phase04.cfg",
+            uuid=uuid.uuid4().hex))
         session.add_all((
             Organisation(
                 uuid=uuid.uuid4().hex,
@@ -197,15 +203,21 @@ class PreProvisionAgentTesting(unittest.TestCase):
         session.add(act)
         session.commit()
 
+        self.assertEqual(0, session.query(Node).count())
         q = PreProvisionAgent.queue(None, None, loop=None)
         agent = PreProvisionAgent(q, args=None, config=None)
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
 
-        msg = PreProvisionAgent.Message(app.uuid, datetime.datetime.utcnow())
+        msg = PreProvisionAgent.Message(
+            app.uuid, datetime.datetime.utcnow(),
+            "cloudhands.jasmin.vcloud.phase04.cfg",
+            "https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/"
+            "vapp-a24617ae-7af0-4e83-92db-41e081b67102")
         rv = message_handler(msg, session)
         self.assertIsInstance(rv, Touch)
 
+        self.assertEqual(1, session.query(Node).count())
         self.assertEqual("provisioning", app.changes[-1].state.name)
 
 

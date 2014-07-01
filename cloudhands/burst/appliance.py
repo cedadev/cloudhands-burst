@@ -85,7 +85,8 @@ class Strategy:
 
 class PreProvisionAgent(Agent):
 
-    Message = namedtuple("ProvisioningMessage", ["uuid", "ts"])
+    Message = namedtuple(
+        "ProvisioningMessage", ["uuid", "ts", "provider", "uri"])
 
     @property
     def callbacks(self):
@@ -100,9 +101,15 @@ class PreProvisionAgent(Agent):
             ApplianceState.name == "provisioning").one()
         app = session.query(Appliance).filter(
             Appliance.uuid == msg.uuid).first()
-        user = app.changes[-1].actor
-        act = Touch(artifact=app, actor=user, state=provisioning, at=msg.ts)
-        session.add(act)
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(artifact=app, actor=actor, state=provisioning, at=msg.ts)
+        resource = Node(
+            name="", touch=act, provider=provider,
+            uri=msg.uri)
+        session.add(resource)
         session.commit()
         return act
  
@@ -237,7 +244,6 @@ class PreProvisionAgent(Agent):
             netDetails = next(
                 find_results(tree, name=config["vdc"]["network"]))
 
-            log.debug(tree)
             data = {
                 "appliance": {
                     "name": label.name,
@@ -259,18 +265,45 @@ class PreProvisionAgent(Agent):
             headers["Content-Type"] = (
             "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
             payload = macro(**data)
-            log.debug(payload)
+
             response = yield from client.request(
                 "POST", url,
                 headers=headers,
                 data=payload.encode("utf-8"))
             reply = yield from response.read_and_close()
 
-            log.debug(reply)
+            tree = ET.fromstring(reply.decode("utf-8"))
+            try:
+                vApp = next(find_xpath(".", tree, name=label.name))
+            except StopIteration:
+                #TODO: Check error for duplicate, take action
+                log.error("Failed to find vapp")
+            else:
+                log.debug(vApp.attrib.get("href"))
 
             msg = PreProvisionAgent.Message(
-                app.uuid, datetime.datetime.utcnow())
+                app.uuid, datetime.datetime.utcnow(),
+                config["metadata"]["path"],
+                vApp.attrib.get("href")
+            )
             yield from msgQ.put(msg)
+
+
+class ProvisioningAgent(Agent):
+
+    #def touch_to_provisioning(self, msg:Message, session):
+    def touch_to_provisioning(self, msg, session):
+        label = self.session.query(Label).join(Touch).join(Appliance).filter(
+            Appliance.id == app.id).first()
+        provider = self.session.query(Provider).filter(
+            Provider.name==config["metadata"]["path"]).one()
+        act = Touch(
+            artifact=app, actor=user, state=pre_operational, at=now)
+        resource = Node(
+            name=label.name, touch=act, provider=provider,
+            uri=node.id)
+        self.session.add(resource)
+        log.info("{} created: {}".format(label.name, node.id))
 
 
 ### Old code below for deletion ####
