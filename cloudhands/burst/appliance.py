@@ -413,7 +413,8 @@ class ProvisioningAgent(Agent):
         while True:
             job = yield from self.work.get()
 
-            msg = Message(app.uuid, datetime.datetime.utcnow())
+            msg = ProvisioningAgent.Message(
+                job.uuid, datetime.datetime.utcnow())
             yield from msgQ.put(msg)
 
 
