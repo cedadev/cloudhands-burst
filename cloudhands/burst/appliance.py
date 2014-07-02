@@ -31,6 +31,7 @@ from cloudhands.common.schema import Label
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
+from cloudhands.common.schema import ProviderReport
 from cloudhands.common.schema import Touch
 
 find_catalogueitems = functools.partial(
@@ -86,36 +87,59 @@ class Strategy:
 class PreCheckAgent(Agent):
 
     CheckedAsOperational = namedtuple(
-        "CheckedAsOperational", ["uuid", "ts", "provider", "uri"])
+        "CheckedAsOperational",
+        ["uuid", "ts", "provider", "creation", "power", "health"])
 
     CheckedAsPreOperational = namedtuple(
-        "CheckedAsPreOperational", ["uuid", "ts", "provider", "uri"])
+        "CheckedAsPreOperational",
+        ["uuid", "ts", "provider", "creation", "power", "health"])
+
+    @property
+    def callbacks(self):
+        return [
+            (PreCheckAgent.CheckedAsOperational, self.touch_to_operational),
+            (PreCheckAgent.CheckedAsPreOperational, self.touch_to_preoperational),
+        ]
+
+    def jobs(self, session):
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "pre_check"]
 
     def touch_to_operational(self, msg:CheckedAsOperational, session):
-        label = self.session.query(Label).join(Touch).join(Appliance).filter(
-            Appliance.id == app.id).first()
-        provider = self.session.query(Provider).filter(
-            Provider.name==config["metadata"]["path"]).one()
+        operational = session.query(ApplianceState).filter(
+            ApplianceState.name == "operational").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
         act = Touch(
-            artifact=app, actor=user, state=pre_operational, at=now)
-        resource = Node(
-            name=label.name, touch=act, provider=provider,
-            uri=node.id)
-        self.session.add(resource)
-        log.info("{} created: {}".format(label.name, node.id))
+            artifact=app, actor=actor, state=operational, at=msg.ts)
+        resource = ProviderReport(
+            creation=msg.creation, power=msg.power, health=msg.health,
+            touch=act, provider=provider)
+        session.add(resource)
+        session.commit()
+        return act
 
     def touch_to_preoperational(self, msg:CheckedAsPreOperational, session):
-        label = self.session.query(Label).join(Touch).join(Appliance).filter(
-            Appliance.id == app.id).first()
-        provider = self.session.query(Provider).filter(
-            Provider.name==config["metadata"]["path"]).one()
+        preoperational = session.query(ApplianceState).filter(
+            ApplianceState.name == "pre_operational").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
         act = Touch(
-            artifact=app, actor=user, state=pre_operational, at=now)
-        resource = Node(
-            name=label.name, touch=act, provider=provider,
-            uri=node.id)
-        self.session.add(resource)
-        log.info("{} created: {}".format(label.name, node.id))
+            artifact=app, actor=actor, state=preoperational, at=msg.ts)
+        resource = ProviderReport(
+            creation=msg.creation, power=msg.power, health=msg.health,
+            touch=act, provider=provider)
+        session.add(resource)
+        session.commit()
+        return act
 
 
 class PreProvisionAgent(Agent):
