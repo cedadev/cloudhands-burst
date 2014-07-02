@@ -14,6 +14,7 @@ import time
 from cloudhands.burst.agent import message_handler
 from cloudhands.burst.agent import operate
 from cloudhands.burst.appliance import ApplianceAgent # TODO: remove
+from cloudhands.burst.appliance import PreCheckAgent
 from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
@@ -57,6 +58,7 @@ def main(args):
 
     workers = []
     for agentType in (
+        PreCheckAgent,
         PreProvisionAgent,
     ):
         workQ = agentType.queue(args, config, loop=loop)

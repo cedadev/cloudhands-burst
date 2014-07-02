@@ -141,6 +141,30 @@ class PreCheckAgent(Agent):
         session.commit()
         return act
 
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ):
+        log = logging.getLogger("cloudhands.burst.appliance.precheck")
+        ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        while True:
+            job = yield from self.work.get()
+            app = job.artifact
+            resources = sorted(
+                (r for c in app.changes for r in c.resources),
+                key=operator.attrgetter("touch.at"),
+                reverse=True)
+
+            messageType = (CheckedAsOperational if any(
+                i for i in resources if i.touch.state.name == "operational")
+                else CheckedAsPreOperational)
+
+            log.info(messageType)
+
+            msg = messageType(
+                app.uuid, datetime.datetime.utcnow(),
+                config["metadata"]["path"],
+                None, None, None
+            )
+            yield from msgQ.put(msg)
 
 class PreProvisionAgent(Agent):
 
