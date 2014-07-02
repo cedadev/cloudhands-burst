@@ -370,12 +370,12 @@ class PreProvisionAgent(Agent):
             else:
                 log.debug(vApp.attrib.get("href"))
 
-            msg = PreProvisionAgent.Message(
-                app.uuid, datetime.datetime.utcnow(),
-                config["metadata"]["path"],
-                vApp.attrib.get("href")
-            )
-            yield from msgQ.put(msg)
+                msg = PreProvisionAgent.Message(
+                    app.uuid, datetime.datetime.utcnow(),
+                    config["metadata"]["path"],
+                    vApp.attrib.get("href")
+                )
+                yield from msgQ.put(msg)
 
 
 class ProvisioningAgent(Agent):

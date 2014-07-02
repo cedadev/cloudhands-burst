@@ -59,10 +59,10 @@ def operate(loop, msgQ, workers, args, config):
             for job in worker.jobs(session):
                 if job.uuid not in pending:
                     pending.add(job.uuid)
-                    log.debug(job)
                     yield from worker.work.put(job)
 
-        pause = 0 if pending else 1
+        log.debug(pending)
+        pause = 0.1 if pending else 1
         yield from asyncio.sleep(pause)
 
         try:
