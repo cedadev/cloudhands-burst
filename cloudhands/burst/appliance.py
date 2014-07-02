@@ -159,7 +159,42 @@ class PreCheckAgent(Agent):
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
             node = next(i for i in resources if isinstance(i, Node))
+            config = Strategy.config(node.provider.name)
 
+            # FIXME: Tokens to be maintained in database. Start of login code
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            response = yield from client.request(
+                "POST", url,
+                auth=(config["user"]["name"], config["user"]["pass"]),
+                headers=headers)
+            headers["x-vcloud-authorization"] = response.headers.get(
+                "x-vcloud-authorization")
+
+
+            # FIXME: End of login code
+
+            response = yield from client.request(
+                "GET", node.uri, headers=headers)
+
+            vApp = yield from response.read_and_close()
+            log.debug(vApp)
             messageType = (PreCheckAgent.CheckedAsOperational if any(
                 i for i in resources if i.touch.state.name == "operational")
                 else PreCheckAgent.CheckedAsPreOperational)
