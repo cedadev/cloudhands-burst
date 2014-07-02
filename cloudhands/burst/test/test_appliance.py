@@ -10,6 +10,7 @@ import uuid
 from cloudhands.burst.agent import message_handler
 from cloudhands.burst.appliance import PreCheckAgent
 from cloudhands.burst.appliance import PreProvisionAgent
+from cloudhands.burst.appliance import ProvisioningAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import Registry
@@ -422,6 +423,116 @@ class PreProvisionAgentTesting(AgentTesting):
 
         self.assertEqual(1, session.query(Node).count())
         self.assertEqual("provisioning", app.changes[-1].state.name)
+
+
+class ProvisioningAgentTesting(AgentTesting):
+
+    def test_handler_registration(self):
+        q = asyncio.Queue()
+        agent = ProvisioningAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+        self.assertEqual(
+            agent.touch_to_precheck,
+            message_handler.dispatch(ProvisioningAgent.Message)
+        )
+
+    def test_queue_creation(self):
+        self.assertIsInstance(
+            ProvisioningAgent.queue(None, None, loop=None),
+            asyncio.Queue
+        )
+
+    def test_msg_dispatch_and_touch(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        now = datetime.datetime.utcnow()
+        requested = session.query(ApplianceState).filter(
+            ApplianceState.name == "requested").one()
+        app = Appliance(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            )
+        act = Touch(artifact=app, actor=user, state=requested, at=now)
+        session.add(act)
+        session.commit()
+
+        q = ProvisioningAgent.queue(None, None, loop=None)
+        agent = PreProvisionAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+
+        msg = ProvisioningAgent.Message(
+            app.uuid, datetime.datetime.utcnow())
+        rv = message_handler(msg, session)
+        self.assertIsInstance(rv, Touch)
+
+        self.assertEqual("pre_check", app.changes[-1].state.name)
+
+    def test_job_query_and_transmit(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+
+        # 0. Set up User
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        # 1. User creates new appliances
+        now = datetime.datetime.utcnow()
+        then = now - datetime.timedelta(seconds=45)
+        requested = session.query(ApplianceState).filter(
+            ApplianceState.name == "requested").one()
+        apps = (
+            Appliance(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org),
+            Appliance(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org),
+            )
+        acts = (
+            Touch(artifact=apps[0], actor=user, state=requested, at=then),
+            Touch(artifact=apps[1], actor=user, state=requested, at=now)
+        )
+
+        tmplt = session.query(CatalogueItem).first()
+        choices = (
+            CatalogueChoice(
+                provider=None, touch=acts[0],
+                **{k: getattr(tmplt, k, None)
+                for k in ("name", "description", "logo")}),
+            CatalogueChoice(
+                provider=None, touch=acts[1],
+                **{k: getattr(tmplt, k, None)
+                for k in ("name", "description", "logo")})
+        )
+        session.add_all(choices)
+        session.commit()
+
+        now = datetime.datetime.utcnow()
+        then = now - datetime.timedelta(seconds=45)
+        provisioning = session.query(ApplianceState).filter(
+            ApplianceState.name == "provisioning").one()
+        acts = (
+            Touch(artifact=apps[0], actor=user, state=provisioning, at=then),
+            Touch(artifact=apps[1], actor=user, state=provisioning, at=now)
+        )
+        session.add_all(acts)
+        session.commit()
+
+        self.assertEqual(
+            2, session.query(Touch).join(Appliance).filter(
+            Appliance.id == apps[1].id).count())
+
+        q = ProvisioningAgent.queue(None, None, loop=None)
+        agent = ProvisioningAgent(q, args=None, config=None)
+        jobs = agent.jobs(session)
+        self.assertEqual(1, len(jobs))
+        self.assertEqual(apps[0].uuid, jobs[0].uuid)
 
 
 class ApplianceTesting(AgentTesting):

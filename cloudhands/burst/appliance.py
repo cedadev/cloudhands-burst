@@ -94,8 +94,13 @@ class PreCheckAgent(Agent):
         "CheckedAsPreOperational",
         ["uuid", "ts", "provider", "creation", "power", "health"])
 
+    CheckedAsProvisioning = namedtuple(
+        "CheckedAsProvisioning",
+        ["uuid", "ts", "provider", "creation", "power", "health"])
+
     @property
     def callbacks(self):
+        # TODO: CheckedAsProvisioning
         return [
             (PreCheckAgent.CheckedAsOperational, self.touch_to_operational),
             (PreCheckAgent.CheckedAsPreOperational, self.touch_to_preoperational),
@@ -165,6 +170,7 @@ class PreCheckAgent(Agent):
                 None, None, None
             )
             yield from msgQ.put(msg)
+
 
 class PreProvisionAgent(Agent):
 
@@ -369,6 +375,45 @@ class PreProvisionAgent(Agent):
                 config["metadata"]["path"],
                 vApp.attrib.get("href")
             )
+            yield from msgQ.put(msg)
+
+
+class ProvisioningAgent(Agent):
+
+    Message = namedtuple("CheckRequiredMessage", ["uuid", "ts"])
+
+    @property
+    def callbacks(self):
+        return [
+            (ProvisioningAgent.Message, self.touch_to_precheck),
+        ]
+
+    def jobs(self, session):
+        now = datetime.datetime.utcnow()
+        then = now - datetime.timedelta(seconds=20)
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "provisioning"
+                and i.changes[-1].at < then]
+
+    def touch_to_precheck(self, msg:Message, session):
+        precheck = session.query(ApplianceState).filter(
+            ApplianceState.name == "pre_check").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        act = Touch(artifact=app, actor=actor, state=precheck, at=msg.ts)
+        session.add(act)
+        session.commit()
+        return act
+ 
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ):
+        log = logging.getLogger("cloudhands.burst.appliance.provisioning")
+        while True:
+            job = yield from self.work.get()
+
+            msg = Message(app.uuid, datetime.datetime.utcnow())
             yield from msgQ.put(msg)
 
 
