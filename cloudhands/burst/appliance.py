@@ -149,6 +149,7 @@ class PreCheckAgent(Agent):
     @asyncio.coroutine
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.precheck")
+        log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         while True:
             job = yield from self.work.get()
@@ -157,18 +158,19 @@ class PreCheckAgent(Agent):
                 (r for c in app.changes for r in c.resources),
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
+            node = next(i for i in resources if isinstance(i, Node))
 
-            messageType = (CheckedAsOperational if any(
+            messageType = (PreCheckAgent.CheckedAsOperational if any(
                 i for i in resources if i.touch.state.name == "operational")
-                else CheckedAsPreOperational)
+                else PreCheckAgent.CheckedAsPreOperational)
 
-            log.info(messageType)
 
             msg = messageType(
                 app.uuid, datetime.datetime.utcnow(),
-                config["metadata"]["path"],
+                node.provider.name,
                 None, None, None
             )
+            log.debug(msg)
             yield from msgQ.put(msg)
 
 
@@ -205,6 +207,7 @@ class PreProvisionAgent(Agent):
     @asyncio.coroutine
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
+        log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         macro = PageTemplateFile(pkg_resources.resource_filename(
             "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
@@ -410,6 +413,7 @@ class ProvisioningAgent(Agent):
     @asyncio.coroutine
     def __call__(self, loop, msgQ):
         log = logging.getLogger("cloudhands.burst.appliance.provisioning")
+        log.info("Activated.")
         while True:
             job = yield from self.work.get()
 
