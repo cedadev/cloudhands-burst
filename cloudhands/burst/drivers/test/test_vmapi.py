@@ -213,6 +213,94 @@ name="system" type="application/vnd.vmware.admin.user+xml" />
 </VApp>
 """
 
+xml_vapp_error = """
+<VApp xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" deployed="false"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a"
+id="urn:vcloud:vapp:c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a" name="test_03"
+ovfDescriptorUploaded="true" status="-1"
+type="application/vnd.vmware.vcloud.vApp+xml"
+xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
+http://172.16.151.139/api/v1.5/schema/master.xsd">
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/network/ce49e558-672d-492a-896c-020d27380661"
+name="un-managed-external-network" rel="down"
+type="application/vnd.vmware.vcloud.vAppNetwork+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a/controlAccess/"
+rel="down" type="application/vnd.vmware.vcloud.controlAccess+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a/action/recomposeVApp"
+rel="recompose" type="application/vnd.vmware.vcloud.recomposeVAppParams+xml"
+/>
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44"
+rel="up" type="application/vnd.vmware.vcloud.vdc+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a"
+rel="remove" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a/owner"
+rel="down" type="application/vnd.vmware.vcloud.owner+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a/metadata"
+rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a/ovf"
+rel="ovf" type="text/xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a/productSections/"
+rel="down" type="application/vnd.vmware.vcloud.productSections+xml" />
+    <Description>FIXME: Description</Description>
+    <Tasks>
+        <Task cancelRequested="false" endTime="2014-07-02T13:38:20.227+01:00"
+expiryTime="2014-09-30T13:38:19.603+01:00"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/task/00ca94a8-d53e-4eba-810a-ab701c518633"
+id="urn:vcloud:task:00ca94a8-d53e-4eba-810a-ab701c518633" name="task"
+operation="Created Virtual Application
+test_03(c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a)"
+operationName="vdcInstantiateVapp" serviceNamespace="com.vmware.vcloud"
+startTime="2014-07-02T13:38:19.603+01:00" status="error"
+type="application/vnd.vmware.vcloud.task+xml">
+            <Owner
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-c5c4ddd1-5c37-43bb-a933-6dbf6a0e9a9a"
+name="test_03" type="application/vnd.vmware.vcloud.vApp+xml" />
+            <Error majorErrorCode="400" message="The requested operation on VM
+&quot;vm-172&quot; is not supported since the VM is disconnected."
+minorErrorCode="BAD_REQUEST"
+stackTrace="com.vmware.vcloud.api.presentation.service.BadRequestException:
+The requested operation on VM &quot;vm-172&quot; is not supported since the VM
+is disconnected.  at
+com.vmware.ssdc.backend.services.impl.VmManagerImpl.validateVmConnected(VmManagerImpl.java:1856)
+at sun.reflect.NativeMethodAccessorImpl.invoke0(Native Method)  at
+sun.reflect.NativeMethodAccessorImpl.invoke(Unknown Source)  at
+java.util.concurrent.FutureTask$Sync.innerRun(Unknown Source)  at
+java.util.concurrent.FutureTask.run(Unknown Source)  at
+java.util.concurrent.ThreadPoolExecutor.runWorker(Unknown Source)  at
+java.util.concurrent.ThreadPoolExecutor$Worker.run(Unknown Source)  at
+java.lang.Thread.run(Unknown Source) " />
+            <User
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/user/04689d16-a695-4ccd-bce2-7c5a5cf7fff3"
+name="system" type="application/vnd.vmware.admin.user+xml" />
+            <Organization
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/6483ae7d-2307-4856-a1c9-109751545b4c"
+name="un-managed_tenancy_test_org"
+type="application/vnd.vmware.vcloud.org+xml" />
+            <Progress>1</Progress>
+            <Details>  The requested operation on VM "vm-172" is not supported
+since the VM is disconnected.</Details>
+        </Task>
+    </Tasks>
+    <DateCreated>2014-07-02T13:38:18.777+01:00</DateCreated>
+    <Owner type="application/vnd.vmware.vcloud.owner+xml">
+        <User
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/user/cc8a9479-be2d-40c2-8347-b5a0a55d160c"
+name="system" type="application/vnd.vmware.admin.user+xml" />
+    </Owner>
+    <InMaintenanceMode>false</InMaintenanceMode>
+</VApp>
+"""
+
 xml_vdc = """
 <Vdc xmlns="http://www.vmware.com/vcloud/v1.5"
 xmlns:ns2="http://www.vmware.com/vcloud/extension/v1.5"

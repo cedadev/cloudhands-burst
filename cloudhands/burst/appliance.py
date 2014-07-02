@@ -194,7 +194,9 @@ class PreCheckAgent(Agent):
                 "GET", node.uri, headers=headers)
 
             vApp = yield from response.read_and_close()
-            log.debug(vApp)
+            tree = ET.fromstring(vApp.decode("utf-8"))
+
+            ET.dump(tree)
             messageType = (PreCheckAgent.CheckedAsOperational if any(
                 i for i in resources if i.touch.state.name == "operational")
                 else PreCheckAgent.CheckedAsPreOperational)
@@ -407,6 +409,16 @@ class PreProvisionAgent(Agent):
                 log.error("Failed to find vapp")
             else:
                 log.debug(vApp.attrib.get("href"))
+
+                #url = "{vdc}/{endpoint}".format(
+                #    vdc=vApp.attrib.get("href"),
+                #    endpoint="action/deploy")
+                #del headers["Content-Type"]
+                #response = yield from client.request(
+                #    "POST", url, headers=headers)
+                #reply = yield from response.read_and_close()
+                #tree = ET.fromstring(reply.decode("utf-8"))
+                #ET.dump(tree)
 
                 msg = PreProvisionAgent.Message(
                     app.uuid, datetime.datetime.utcnow(),
