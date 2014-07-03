@@ -569,17 +569,20 @@ class ProvisioningAgent(Agent):
                 log.error("Missing customisation script")
                 ET.dump(tree)
             else:
-                log.debug(sectionElement)r
-                """
-                Auto-logon count must be within 1 to 100 range if
-                enabled or 0 otherwise
-                """
+                ET.dump(sectionElement)
                 scriptElement = next(find_customizationscript(tree))
                 scriptElement.text = xml.sax.saxutils.escape(
                     customizationScript, entities={
                         '"': "&quot;", "\n": "&#13;",
                         "%": "&#37;", "'": "&apos;"})
 
+                # Auto-logon count must be within 1 to 100 range if
+                # enabled or 0 otherwise
+                aaLCElement = next(
+                    i for i in sectionElement
+                    if i.tag.endswith("AdminAutoLogonCount"))
+                aaLCElement.text = "0"
+ 
                 url = sectionElement.attrib.get("href")
                 headers["Content-Type"] = (
                     "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
