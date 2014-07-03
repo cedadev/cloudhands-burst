@@ -10,6 +10,7 @@ import functools
 import logging
 import operator
 import xml.etree.ElementTree as ET
+import xml.sax.saxutils
 
 import aiohttp
 from chameleon import PageTemplateFile
@@ -35,6 +36,19 @@ from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
 from cloudhands.common.schema import Touch
 
+# FIXME:
+customizationScript = """
+#!/bin/sh
+if [ x$1 ==x"precustomization" ]; then
+mkdir /root/.ssh/
+echo"ssh-rsaAAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw==cl@eduserv.org.uk"
+>>/root/.ssh/authorized_keys
+/root/pre_customisation.sh
+elif [ x$1 ==x"postcustomization" ];then
+/root/post_customisation.sh
+fi
+"""
+
 find_catalogueitems = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.vcloud.catalogItem+xml']",
     namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
@@ -42,12 +56,15 @@ find_catalogueitems = functools.partial(
 find_catalogues = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.catalog+xml']")
 
-def find_customizationscript(tree): 
+def find_customizationsection(tree): 
     elems = find_xpath(
         ".//*[@type='application/vnd.vmware.vcloud.guestCustomizationSection+xml']",
         tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
-    gcSection = next(i for i in elems if i.tag.endswith("CustomizationSection"))
-    return (i for i in gcSection if i.tag.endswith("CustomizationScript"))
+    return (i for i in elems if i.tag.endswith("CustomizationSection"))
+
+def find_customizationscript(tree): 
+    return (i for s in find_customizationsection(tree) for i in s
+            if i.tag.endswith("CustomizationScript"))
 
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
@@ -446,10 +463,6 @@ class PreProvisionAgent(Agent):
             else:
                 log.debug(vApp.attrib.get("href"))
 
-                # TODO: PUT /vApp/{id}/guestCustomizationSection
-                # This operation is asynchronous and the user should monitor
-                # the returned task status in order to check when it is completed
-
                 # FIXME: Need to deploy VM after Customization Task is
                 # complete. Move to PreOperationalAgent
                 #url = "{vdc}/{endpoint}".format(
@@ -505,6 +518,77 @@ class ProvisioningAgent(Agent):
         log.info("Activated.")
         while True:
             job = yield from self.work.get()
+
+            app = job.artifact
+            resources = sorted(
+                (r for c in app.changes for r in c.resources),
+                key=operator.attrgetter("touch.at"),
+                reverse=True)
+            node = next(i for i in resources if isinstance(i, Node))
+            config = Strategy.config(node.provider.name)
+
+            # FIXME: Tokens to be maintained in database. Start of login code
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            response = yield from client.request(
+                "POST", url,
+                auth=(config["user"]["name"], config["user"]["pass"]),
+                headers=headers)
+            headers["x-vcloud-authorization"] = response.headers.get(
+                "x-vcloud-authorization")
+
+
+            # FIXME: End of login code
+
+            url = "{}/guestCustomizationSection".format(node.uri)
+            log.debug(url)
+            response = yield from client.request(
+                "GET", node.uri, headers=headers)
+            reply = yield from response.read_and_close()
+            tree = ET.fromstring(reply.decode("utf-8"))
+
+            try:
+                sectionElement = next(find_customizationsection(tree))
+            except StopIteration:
+                log.error("Missing customisation script")
+                ET.dump(tree)
+            else:
+                log.debug(sectionElement)r
+                """
+                Auto-logon count must be within 1 to 100 range if
+                enabled or 0 otherwise
+                """
+                scriptElement = next(find_customizationscript(tree))
+                scriptElement.text = xml.sax.saxutils.escape(
+                    customizationScript, entities={
+                        '"': "&quot;", "\n": "&#13;",
+                        "%": "&#37;", "'": "&apos;"})
+
+                url = sectionElement.attrib.get("href")
+                headers["Content-Type"] = (
+                    "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
+                response = yield from client.request(
+                    "PUT", url,
+                    headers=headers,
+                    data=ET.tostring(sectionElement, encoding="utf-8"))
+                reply = yield from response.read_and_close()
+                log.debug(reply)
 
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())
