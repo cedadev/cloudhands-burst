@@ -21,6 +21,7 @@ from cloudhands.burst.control import create_node
 from cloudhands.burst.control import describe_node
 from cloudhands.burst.control import destroy_node
 from cloudhands.burst.utils import find_xpath
+from cloudhands.burst.utils import unescape_script
 from cloudhands.common.discovery import providers
 from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
@@ -107,10 +108,10 @@ class PreCheckAgent(Agent):
 
     @property
     def callbacks(self):
-        # TODO: CheckedAsProvisioning
         return [
             (PreCheckAgent.CheckedAsOperational, self.touch_to_operational),
             (PreCheckAgent.CheckedAsPreOperational, self.touch_to_preoperational),
+            (PreCheckAgent.CheckedAsProvisioning, self.touch_to_provisioning),
         ]
 
     def jobs(self, session):
@@ -146,6 +147,24 @@ class PreCheckAgent(Agent):
             Provider.name==msg.provider).one()
         act = Touch(
             artifact=app, actor=actor, state=preoperational, at=msg.ts)
+        resource = ProviderReport(
+            creation=msg.creation, power=msg.power, health=msg.health,
+            touch=act, provider=provider)
+        session.add(resource)
+        session.commit()
+        return act
+
+    def touch_to_provisioning(self, msg:CheckedAsProvisioning, session):
+        provisioning = session.query(ApplianceState).filter(
+            ApplianceState.name == "provisioning").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(
+            artifact=app, actor=actor, state=provisioning, at=msg.ts)
         resource = ProviderReport(
             creation=msg.creation, power=msg.power, health=msg.health,
             touch=act, provider=provider)
@@ -203,17 +222,26 @@ class PreCheckAgent(Agent):
             vApp = yield from response.read_and_close()
             tree = ET.fromstring(vApp.decode("utf-8"))
 
-            # TODO: Check for customization section
-            ET.dump(tree)
-            messageType = (PreCheckAgent.CheckedAsOperational if any(
-                i for i in resources if i.touch.state.name == "operational")
-                else PreCheckAgent.CheckedAsPreOperational)
+            messageType = PreCheckAgent.CheckedAsProvisioning
+            try:
+                scriptElement = next(find_customizationscript(tree))
+            except StopIteration:
+                log.error("Missing customisation script")
+            else:
+                script = unescape_script(scriptElement.text).splitlines()
+                if len(script) > 6:
+                    # Customisation script is in place
+                    messageType = (PreCheckAgent.CheckedAsOperational if any(
+                        i for i in resources
+                        if i.touch.state.name == "operational")
+                        else PreCheckAgent.CheckedAsPreOperational)
 
-
+            creation = ("deployed" if tree.attrib.get("deployed") == "true"
+                        else "undeployed")
             msg = messageType(
                 app.uuid, datetime.datetime.utcnow(),
                 node.provider.name,
-                None, None, None
+                creation, None, None
             )
             log.debug(msg)
             yield from msgQ.put(msg)

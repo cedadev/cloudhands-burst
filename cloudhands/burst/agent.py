@@ -61,7 +61,6 @@ def operate(loop, msgQ, workers, args, config):
                     pending.add(job.uuid)
                     yield from worker.work.put(job)
 
-        log.debug(pending)
         pause = 0.1 if pending else 1
         yield from asyncio.sleep(pause)
 

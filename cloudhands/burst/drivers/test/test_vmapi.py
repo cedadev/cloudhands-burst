@@ -514,6 +514,7 @@ class XMLTests(unittest.TestCase):
         self.assertEqual(1, len(elems))
         self.assertEqual(150, len(elems[0].text))
 
+
 class APITemplateTests(unittest.TestCase):
 
     def setUp(self):

@@ -94,6 +94,10 @@ class PreCheckAgentTesting(AgentTesting):
             agent.touch_to_preoperational,
             message_handler.dispatch(PreCheckAgent.CheckedAsPreOperational)
         )
+        self.assertEqual(
+            agent.touch_to_provisioning,
+            message_handler.dispatch(PreCheckAgent.CheckedAsProvisioning)
+        )
 
     def test_job_query_and_transmit(self):
         session = Registry().connect(sqlite3, ":memory:").session
