@@ -14,4 +14,5 @@ def find_xpath(xpath, tree, namespaces={}, **kwargs):
 def unescape_script(text):
     data = ''.join(text.splitlines())
     return xml.sax.saxutils.unescape(
-        data, entities={"&quot;": '"', "&#13;": "\n"})
+        data, entities={
+            "&quot;": '"', "&#13;": "\n", "&#37;": "%", "&apos;": "'"})
