@@ -196,6 +196,7 @@ class PreCheckAgent(Agent):
             vApp = yield from response.read_and_close()
             tree = ET.fromstring(vApp.decode("utf-8"))
 
+            # TODO: Check for customization section
             ET.dump(tree)
             messageType = (PreCheckAgent.CheckedAsOperational if any(
                 i for i in resources if i.touch.state.name == "operational")
@@ -410,6 +411,12 @@ class PreProvisionAgent(Agent):
             else:
                 log.debug(vApp.attrib.get("href"))
 
+                # TODO: PUT /vApp/{id}/guestCustomizationSection
+                # This operation is asynchronous and the user should monitor
+                # the returned task status in order to check when it is completed
+
+                # FIXME: Need to deploy VM after Customization Task is
+                # complete. Move to PreOperationalAgent
                 #url = "{vdc}/{endpoint}".format(
                 #    vdc=vApp.attrib.get("href"),
                 #    endpoint="action/deploy")

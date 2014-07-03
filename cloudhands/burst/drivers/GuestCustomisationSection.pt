@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><vcloud:GuestCustomizationSection
+    xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+    xmlns:vcloud="http://www.vmware.com/vcloud/v1.5"
+
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-98431ced-d0e0-44c2-966a-50bf22707dfe/guestCustomizationSection/"
+    ovf:required="false"
+    type="application/vnd.vmware.vcloud.guestCustomizationSection+xml">
+    <ovf:Info>Specifies Guest OS Customization Settings</ovf:Info>
+    <vcloud:Enabled>true</vcloud:Enabled>
+    <vcloud:ChangeSid>false</vcloud:ChangeSid>
+
+<vcloud:VirtualMachineId>98431ced-d0e0-44c2-966a-50bf22707dfe</vcloud:VirtualMachineId>
+    <vcloud:JoinDomainEnabled>false</vcloud:JoinDomainEnabled>
+    <vcloud:UseOrgSettings>false</vcloud:UseOrgSettings>
+    <vcloud:AdminPasswordEnabled>false</vcloud:AdminPasswordEnabled>
+    <vcloud:AdminPasswordAuto>true</vcloud:AdminPasswordAuto>
+    <vcloud:AdminAutoLogonEnabled>false</vcloud:AdminAutoLogonEnabled>
+    <vcloud:AdminAutoLogonCount>0</vcloud:AdminAutoLogonCount>
+    <vcloud:ResetPasswordRequired>false</vcloud:ResetPasswordRequired>
+    <vcloud:CustomizationScript>#!/bin/sh&#13;if [ x$1 ==
+x&quot;precustomization&quot; ]; then&#13;mkdir /root/.ssh/&#13;echo
+&quot;ssh-rsa
+AAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw==
+cl@eduserv.org.uk&quot; &gt;&gt;
+/root/.ssh/authorized_keys&#13;/root/pre_customisation.sh&#13;elif [ x$1 ==
+x&quot;postcustomization&quot; ];
+then&#13;/root/post_customisation.sh&#13;fi</vcloud:CustomizationScript>
+    <vcloud:ComputerName>importedVap-001</vcloud:ComputerName>
+    <vcloud:Link
+        href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-98431ced-d0e0-44c2-966a-50bf22707dfe/guestCustomizationSection/"
+        rel="edit"
+        type="application/vnd.vmware.vcloud.guestCustomizationSection+xml"/>
+</vcloud:GuestCustomizationSection>
