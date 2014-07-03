@@ -36,12 +36,16 @@ setup(
     packages=[
         "cloudhands.burst",
         "cloudhands.burst.drivers",
+        "cloudhands.burst.drivers.test",
         "cloudhands.burst.test"
         ],
     package_data={
         "cloudhands.burst": [],
         "cloudhands.burst.drivers": [
             "*.pt",
+        ],
+        "cloudhands.burst.drivers.test": [
+            "*.xml",
         ],
         "cloudhands.burst.test": [],
         },

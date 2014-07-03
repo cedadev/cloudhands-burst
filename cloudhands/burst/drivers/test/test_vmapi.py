@@ -9,6 +9,7 @@ from chameleon import PageTemplateFile
 import pkg_resources
 
 from cloudhands.burst.appliance import find_catalogueitems
+from cloudhands.burst.appliance import find_customizationscript
 from cloudhands.burst.appliance import find_orgs
 from cloudhands.burst.appliance import find_results
 from cloudhands.burst.appliance import find_templates
@@ -504,6 +505,14 @@ class XMLTests(unittest.TestCase):
     def test_customization_script_unescape(self):
         self.assertEqual(
             8, len(unescape_script(text_customizationscript).splitlines()))
+
+    def test_customization_script_from_vapp(self):
+        data = pkg_resources.resource_string(
+            "cloudhands.burst.drivers.test", "vapp-test_02.xml")
+        tree = ET.fromstring(data)
+        elems = list(find_customizationscript(tree))
+        self.assertEqual(1, len(elems))
+        self.assertEqual(150, len(elems[0].text))
 
 class APITemplateTests(unittest.TestCase):
 

@@ -41,6 +41,13 @@ find_catalogueitems = functools.partial(
 find_catalogues = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.catalog+xml']")
 
+def find_customizationscript(tree): 
+    elems = find_xpath(
+        ".//*[@type='application/vnd.vmware.vcloud.guestCustomizationSection+xml']",
+        tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
+    gcSection = next(i for i in elems if i.tag.endswith("CustomizationSection"))
+    return (i for i in gcSection if i.tag.endswith("CustomizationScript"))
+
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
 
