@@ -50,7 +50,7 @@ setup(
         "cloudhands.burst.test": [],
         },
     install_requires=[
-        "cloudhands-common>=0.20",
+        "cloudhands-common>=0.23",
         "aiohttp>=0.8.2",
         "apache-libcloud>=0.13.0",
         "Chameleon>=2.14",

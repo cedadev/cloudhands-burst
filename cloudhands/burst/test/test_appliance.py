@@ -129,11 +129,11 @@ class PreCheckAgentTesting(AgentTesting):
         tmplt = session.query(CatalogueItem).first()
         choices = (
             CatalogueChoice(
-                provider=None, touch=acts[0],
+                provider=None, touch=acts[0], natrouted=True,
                 **{k: getattr(tmplt, k, None)
                 for k in ("name", "description", "logo")}),
             CatalogueChoice(
-                provider=None, touch=acts[1],
+                provider=None, touch=acts[1], natrouted=True,
                 **{k: getattr(tmplt, k, None)
                 for k in ("name", "description", "logo")})
         )
@@ -332,11 +332,11 @@ class PreProvisionAgentTesting(AgentTesting):
         tmplt = session.query(CatalogueItem).first()
         choices = (
             CatalogueChoice(
-                provider=None, touch=acts[0],
+                provider=None, touch=acts[0], natrouted=True,
                 **{k: getattr(tmplt, k, None)
                 for k in ("name", "description", "logo")}),
             CatalogueChoice(
-                provider=None, touch=acts[1],
+                provider=None, touch=acts[1], natrouted=False,
                 **{k: getattr(tmplt, k, None)
                 for k in ("name", "description", "logo")})
         )
@@ -506,11 +506,11 @@ class ProvisioningAgentTesting(AgentTesting):
         tmplt = session.query(CatalogueItem).first()
         choices = (
             CatalogueChoice(
-                provider=None, touch=acts[0],
+                provider=None, touch=acts[0], natrouted=True,
                 **{k: getattr(tmplt, k, None)
                 for k in ("name", "description", "logo")}),
             CatalogueChoice(
-                provider=None, touch=acts[1],
+                provider=None, touch=acts[1], natrouted=True,
                 **{k: getattr(tmplt, k, None)
                 for k in ("name", "description", "logo")})
         )
@@ -561,7 +561,7 @@ class ApplianceTesting(AgentTesting):
 
         tmplt = session.query(CatalogueItem).first()
         choice = CatalogueChoice(
-            provider=None, touch=act,
+            provider=None, touch=act, natrouted=True,
             **{k: getattr(tmplt, k, None)
             for k in ("name", "description", "logo")})
         session.add(choice)
