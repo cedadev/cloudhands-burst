@@ -67,6 +67,10 @@ def find_customizationscript(tree):
     return (i for s in find_customizationsection(tree) for i in s
             if i.tag.endswith("CustomizationScript"))
 
+find_gatewayserviceconfiguration = functools.partial(
+    find_xpath,
+    ".//*[@type='application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml']")
+
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
 
@@ -301,6 +305,8 @@ class PreOperationalAgent(Agent):
         log = logging.getLogger("cloudhands.burst.appliance.preoperation")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        macro = PageTemplateFile(pkg_resources.resource_filename(
+            "cloudhands.burst.drivers", "NatRule.pt"))
         while True:
             job = yield from self.work.get()
             app = job.artifact
@@ -359,7 +365,8 @@ class PreOperationalAgent(Agent):
             try:
                 org = next(orgFound)
             except StopIteration:
-                log.error(orgFound)
+                log.error("Failed to find org")
+                continue
 
             response = yield from client.request(
                 "GET", org.attrib.get("href"),
@@ -370,6 +377,7 @@ class PreOperationalAgent(Agent):
                 vdcLink = next(find_vdcs(tree))
             except StopIteration:
                 log.error("Failed to find VDC")
+                continue
 
             response = yield from client.request(
                 "GET", vdcLink.attrib.get("href"),
@@ -383,16 +391,60 @@ class PreOperationalAgent(Agent):
                     find_records(tree, rel="edgeGateways"))
             except StopIteration:
                 log.error("Failed to find gateways")
+                continue
+
             response = yield from client.request(
                 "GET", gwLink.attrib.get("href"),
                 headers=headers)
             gwData = yield from response.read_and_close()
             tree = ET.fromstring(gwData.decode("utf-8"))
 
-            gwDetails = next(
+            gwRecord = next(
                 find_results(tree, name=config["vdc"]["gateway"]))
-            log.debug(gwDetails)
 
+            response = yield from client.request(
+                "GET", gwRecord.attrib.get("href"),
+                headers=headers)
+            gwData = yield from response.read_and_close()
+            tree = ET.fromstring(gwData.decode("utf-8"))
+
+            try:
+                eGSC = next(
+                    c for i in tree if i.tag.endswith("Configuration")
+                    for c in i
+                    if c.tag.endswith("EdgeGatewayServiceConfiguration"))
+            except StopIteration:
+                log.error("Missing Edge gateway service configuration")
+                continue
+
+            data = {}
+            try:
+                natService = next(
+                    i for i in eGSC if i.tag.endswith("NatService"))
+            except StopIteration:
+                natService = ET.XML(
+                    """<NatService><IsEnabled>true</IsEnabled></NatService>""")
+                eGSC.append(natService)
+
+            rules = [
+                {"type": "DNAT"},
+                {"type": "SNAT"}
+            ]
+            for data in rules:
+                natService.append(ET.XML(macro(**data)))
+
+            ET.dump(eGSC)
+
+
+            gwServiceCfgs = find_gatewayserviceconfiguration(tree)
+
+            try:
+                gwSCfg = next(gwServiceCfgs)
+            except StopIteration:
+                log.error("Failed to find gateway service configuration")
+
+
+#Content-Type: application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml
             #msg = PreOperationalAgent.Message(
             #    app.uuid, datetime.datetime.utcnow(),
             #    node.provider.name,

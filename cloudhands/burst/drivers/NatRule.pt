@@ -1,0 +1,14 @@
+<NatRule>
+  <RuleType tal:content="type"></RuleType>
+  <IsEnabled>true</IsEnabled>
+  <GatewayNatRule>
+     <Interface
+        href="https://vcloud.example.com/api/admin/network/297" />
+     <OriginalIp>10.147.115.155</OriginalIp>
+     <OriginalPort>any</OriginalPort>
+     <TranslatedIp>192.168.0.100-192.168.0.199</TranslatedIp>
+     <TranslatedPort>any</TranslatedPort>
+     <Protocol>any</Protocol>
+     <IcmpSubType>any</IcmpSubType>
+  </GatewayNatRule>
+</NatRule>
