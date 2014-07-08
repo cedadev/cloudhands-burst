@@ -30,6 +30,7 @@ from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Label
+from cloudhands.common.schema import NATRouting
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
@@ -262,6 +263,38 @@ class PreCheckAgent(Agent):
             )
             log.debug(msg)
             yield from msgQ.put(msg)
+
+
+class PreOperationalAgent(Agent):
+
+    Message = namedtuple(
+        "OperationalMessage",
+        ["uuid", "ts", "provider", "ip_internal", "ip_external"])
+
+    @property
+    def callbacks(self):
+        return [(PreOperationalAgent.Message, self.touch_to_operational)]
+
+    def jobs(self, session):
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "pre_operational"]
+
+    def touch_to_operational(self, msg:Message, session):
+        operational = session.query(ApplianceState).filter(
+            ApplianceState.name == "operational").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(artifact=app, actor=actor, state=operational, at=msg.ts)
+        resource = NATRouting(
+            touch=act, provider=provider,
+            ip_int=msg.ip_internal, ip_ext=msg.ip_external)
+        session.add(resource)
+        session.commit()
+        return act
 
 
 class PreProvisionAgent(Agent):

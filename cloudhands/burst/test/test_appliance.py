@@ -9,6 +9,7 @@ import uuid
 
 from cloudhands.burst.agent import message_handler
 from cloudhands.burst.appliance import PreCheckAgent
+from cloudhands.burst.appliance import PreOperationalAgent
 from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import ProvisioningAgent
 
@@ -21,6 +22,7 @@ from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Label
+from cloudhands.common.schema import NATRouting
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
@@ -282,6 +284,59 @@ class PreCheckAgentTesting(AgentTesting):
         self.assertEqual(report.creation, "deployed")
         self.assertEqual(report.power, "off")
         self.assertEqual("pre_operational", app.changes[-1].state.name)
+
+
+class PreOperationalAgentTesting(AgentTesting):
+
+    def test_handler_registration(self):
+        q = asyncio.Queue()
+        agent = PreOperationalAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+        self.assertEqual(
+            agent.touch_to_operational,
+            message_handler.dispatch(PreOperationalAgent.Message)
+        )
+
+    def test_queue_creation(self):
+        self.assertIsInstance(
+            ProvisioningAgent.queue(None, None, loop=None),
+            asyncio.Queue
+        )
+
+    def test_msg_dispatch_and_touch(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        now = datetime.datetime.utcnow()
+        requested = session.query(ApplianceState).filter(
+            ApplianceState.name == "requested").one()
+        app = Appliance(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            )
+        act = Touch(artifact=app, actor=user, state=requested, at=now)
+        session.add(act)
+        session.commit()
+
+        self.assertEqual(0, session.query(NATRouting).count())
+        q = PreOperationalAgent.queue(None, None, loop=None)
+        agent = PreOperationalAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+
+        msg = PreOperationalAgent.Message(
+            app.uuid, datetime.datetime.utcnow(),
+            "cloudhands.jasmin.vcloud.phase04.cfg",
+            "192.168.2.1",
+            "172.16.151.166")
+        rv = message_handler(msg, session)
+        self.assertIsInstance(rv, Touch)
+
+        self.assertEqual(1, session.query(NATRouting).count())
+        self.assertEqual("operational", app.changes[-1].state.name)
 
 
 class PreProvisionAgentTesting(AgentTesting):
