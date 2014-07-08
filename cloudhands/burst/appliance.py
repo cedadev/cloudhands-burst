@@ -393,6 +393,21 @@ class PreOperationalAgent(Agent):
                 log.error("Failed to find gateways")
                 continue
 
+            # Network details via query to vdc
+            try:
+                netLink = next(
+                    find_records(tree, rel="orgVdcNetworks"))
+            except StopIteration:
+                log.error("Failed to find network")
+            response = yield from client.request(
+                "GET", netLink.attrib.get("href"),
+                headers=headers)
+            netData = yield from response.read_and_close()
+            tree = ET.fromstring(netData.decode("utf-8"))
+            netDetails = next(
+                find_results(tree, name=config["vdc"]["network"]))
+
+            # Gateway data from link
             response = yield from client.request(
                 "GET", gwLink.attrib.get("href"),
                 headers=headers)
@@ -427,22 +442,47 @@ class PreOperationalAgent(Agent):
                 eGSC.append(natService)
 
             rules = [
-                {"type": "DNAT"},
-                {"type": "SNAT"}
+                {
+                    "typ": "DNAT",
+                    "network": {
+                        "name": config["vdc"]["network"],
+                        "href": netDetails.attrib.get("href")
+                    },
+                    "rule": {
+                        "rx": "172.16.151.166",
+                        "tx": "192.168.2.1",
+                    }
+                },
+                {
+                    "typ": "SNAT",
+                    "network": {
+                        "name": config["vdc"]["network"],
+                        "href": netDetails.attrib.get("href")
+                    },
+                    "rule": {
+                        "rx": "192.168.2.1",
+                        "tx": "172.16.151.166",
+                    }
+                }
             ]
             for data in rules:
                 natService.append(ET.XML(macro(**data)))
 
-            ET.dump(eGSC)
-
-
             gwServiceCfgs = find_gatewayserviceconfiguration(tree)
-
             try:
                 gwSCfg = next(gwServiceCfgs)
             except StopIteration:
                 log.error("Failed to find gateway service configuration")
 
+            url = gwSCfg.attrib.get("href")
+            headers["Content-Type"] = (
+                "application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml")
+            response = yield from client.request(
+                "POST", url,
+                headers=headers,
+                data=ET.tostring(eGSC, encoding="utf-8"))
+            reply = yield from response.read_and_close()
+            log.debug(reply)
 
 #Content-Type: application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml
             #msg = PreOperationalAgent.Message(
