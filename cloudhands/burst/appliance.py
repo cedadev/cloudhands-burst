@@ -296,6 +296,111 @@ class PreOperationalAgent(Agent):
         session.commit()
         return act
 
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ):
+        log = logging.getLogger("cloudhands.burst.appliance.preoperation")
+        log.info("Activated.")
+        ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        while True:
+            job = yield from self.work.get()
+            app = job.artifact
+            resources = sorted(
+                (r for c in app.changes for r in c.resources),
+                key=operator.attrgetter("touch.at"),
+                reverse=True)
+            node = next(i for i in resources if isinstance(i, Node))
+            config = Strategy.config(node.provider.name)
+            network = config.get("vdc", "network", fallback=None)
+
+            # FIXME: Tokens to be maintained in database. Start of login code
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            response = yield from client.request(
+                "POST", url,
+                auth=(config["user"]["name"], config["user"]["pass"]),
+                headers=headers)
+                #connector=connector)
+                #request_class=requestClass)
+            headers["x-vcloud-authorization"] = response.headers.get(
+                "x-vcloud-authorization")
+
+
+            # FIXME: End of login code
+
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/org")
+            response = yield from client.request(
+                "GET", url,
+                headers=headers)
+
+            orgList = yield from response.read_and_close()
+            tree = ET.fromstring(orgList.decode("utf-8"))
+            orgFound = find_orgs(tree, name=config["vdc"]["org"])
+
+            try:
+                org = next(orgFound)
+            except StopIteration:
+                log.error(orgFound)
+
+            response = yield from client.request(
+                "GET", org.attrib.get("href"),
+                headers=headers)
+            orgData = yield from response.read_and_close()
+            tree = ET.fromstring(orgData.decode("utf-8"))
+            try:
+                vdcLink = next(find_vdcs(tree))
+            except StopIteration:
+                log.error("Failed to find VDC")
+
+            response = yield from client.request(
+                "GET", vdcLink.attrib.get("href"),
+                headers=headers)
+            vdcData = yield from response.read_and_close()
+            tree = ET.fromstring(vdcData.decode("utf-8"))
+
+            # Gateway details via query to vdc
+            try:
+                gwLink = next(
+                    find_records(tree, rel="edgeGateways"))
+            except StopIteration:
+                log.error("Failed to find gateways")
+            response = yield from client.request(
+                "GET", gwLink.attrib.get("href"),
+                headers=headers)
+            gwData = yield from response.read_and_close()
+            tree = ET.fromstring(gwData.decode("utf-8"))
+
+            gwDetails = next(
+                find_results(tree, name=config["vdc"]["gateway"]))
+            log.debug(gwDetails)
+
+            #msg = PreOperationalAgent.Message(
+            #    app.uuid, datetime.datetime.utcnow(),
+            #    node.provider.name,
+            #    creation, None, None
+            #)
+            #log.debug(msg)
+            #yield from msgQ.put(msg)
+
 
 class PreProvisionAgent(Agent):
 

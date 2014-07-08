@@ -131,7 +131,7 @@ size="big" />
 </OrgList>
 """
 
-xml_queryresultrecords = """
+xml_queryresultrecords_network = """
 <QueryResultRecords xmlns="http://www.vmware.com/vcloud/v1.5"
 xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44/networks?page=1&amp;pageSize=25&amp;format=records"
@@ -155,6 +155,32 @@ taskDetails=" " taskOperation="networkCreateOrgVdcNetwork"
 taskStatus="success"
 vdc="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44"
 vdcName="un-managed_tenancy_test_org-std-compute-PAYG" />
+</QueryResultRecords>"""
+
+xml_queryresultrecords_gateway = """
+<QueryResultRecords xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44/edgeGateways?page=1&amp;pageSize=25&amp;format=records"
+name="edgeGateway" page="1" pageSize="25" total="1"
+type="application/vnd.vmware.vcloud.query.records+xml"
+xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
+http://172.16.151.139/api/v1.5/schema/master.xsd">
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44/edgeGateways?page=1&amp;pageSize=25&amp;format=references"
+rel="alternate" type="application/vnd.vmware.vcloud.query.references+xml" />
+    <Link
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44/edgeGateways?page=1&amp;pageSize=25&amp;format=idrecords"
+rel="alternate" type="application/vnd.vmware.vcloud.query.idrecords+xml" />
+    <EdgeGatewayRecord gatewayStatus="READY" haStatus="DISABLED"
+href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c"
+isBusy="false" isSyslogServerSettingInSync="true"
+name="jasmin-priv-external-network" numberOfExtNetworks="1"
+numberOfOrgNetworks="1"
+task="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/task/9cdfc1a7-d158-495d-83d9-c0505e200937"
+taskDetails=" " taskOperation="networkEdgeGatewayRedeploy"
+taskStatus="success"
+vdc="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44"
+/>
 </QueryResultRecords>"""
 
 xml_vapp = """
@@ -483,11 +509,17 @@ class XMLTests(unittest.TestCase):
             1, len(list(find_catalogueitems(
                 tree, name="centos6-stemcell"))))
 
-    def test_queryresultrecords_by_name(self):
-        tree = ET.fromstring(xml_queryresultrecords)
+    def test_network_queryresultrecords_by_name(self):
+        tree = ET.fromstring(xml_queryresultrecords_network)
         self.assertEqual(
             1, len(list(find_results(
                 tree, name="un-managed-external-network"))))
+
+    def test_gateway_queryresultrecords_by_name(self):
+        tree = ET.fromstring(xml_queryresultrecords_gateway)
+        self.assertEqual(
+            1, len(list(find_results(
+                tree, name="jasmin-priv-external-network"))))
 
     def test_vapp_from_vapp(self):
         tree = ET.fromstring(xml_vapp)

@@ -15,6 +15,7 @@ from cloudhands.burst.agent import message_handler
 from cloudhands.burst.agent import operate
 from cloudhands.burst.appliance import ApplianceAgent # TODO: remove
 from cloudhands.burst.appliance import PreCheckAgent
+from cloudhands.burst.appliance import PreOperationalAgent
 from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import ProvisioningAgent
 from cloudhands.burst.subscription import SubscriptionAgent
@@ -60,6 +61,7 @@ def main(args):
     workers = []
     for agentType in (
         PreCheckAgent,
+        PreOperationalAgent,
         PreProvisionAgent,
         ProvisioningAgent,
     ):
