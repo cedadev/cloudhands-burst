@@ -1,0 +1,102 @@
+<EdgeGateway xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c" id="urn:vcloud:gateway:bef96635-249b-49a9-a494-9f867052b05c" name="jasmin-priv-external-network" status="1" type="application/vnd.vmware.admin.edgeGateway+xml" xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5 http://172.16.151.139/api/v1.5/schema/master.xsd">
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c" rel="edit" type="application/vnd.vmware.admin.edgeGateway+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c" rel="remove" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44" rel="up" type="application/vnd.vmware.admin.vdc+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c/action/redeploy" rel="edgeGateway:redeploy" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c/action/configureServices" rel="edgeGateway:configureServices" type="application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c/action/reapplyServices" rel="edgeGateway:reapplyServices" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c/action/syncSyslogServerSettings" rel="edgeGateway:syncSyslogSettings" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/edgeGateway/bef96635-249b-49a9-a494-9f867052b05c/action/upgradeConfig" rel="edgeGateway:upgrade" />
+    <Description />
+    <Configuration>
+        <GatewayBackingConfig>compact</GatewayBackingConfig>
+        <GatewayInterfaces>
+            <GatewayInterface>
+                <Name>routed-external-network</Name>
+                <DisplayName>routed-external-network</DisplayName>
+                <Network href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/fc2999da-2c01-402f-8f8d-ad758e46169d" name="routed-external-network" type="application/vnd.vmware.admin.network+xml" />
+                <InterfaceType>uplink</InterfaceType>
+                <SubnetParticipation>
+                    <Gateway>172.16.151.254</Gateway>
+                    <Netmask>255.255.248.0</Netmask>
+                    <IpAddress>172.16.151.163</IpAddress>
+                    <IpRanges>
+                        <IpRange>
+                            <StartAddress>172.16.151.170</StartAddress>
+                            <EndAddress>172.16.151.170</EndAddress>
+                        </IpRange>
+                    </IpRanges>
+                </SubnetParticipation>
+                <ApplyRateLimit>false</ApplyRateLimit>
+                <InRateLimit>100.0</InRateLimit>
+                <OutRateLimit>100.0</OutRateLimit>
+                <UseForDefaultRoute>true</UseForDefaultRoute>
+            </GatewayInterface>
+            <GatewayInterface>
+                <Name>un-managed-external-network</Name>
+                <DisplayName>un-managed-external-network</DisplayName>
+                <Network href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/9604bd58-b05c-4fa3-9f9b-4e7991376f21" name="un-managed-external-network" type="application/vnd.vmware.admin.network+xml" />
+                <InterfaceType>internal</InterfaceType>
+                <SubnetParticipation>
+                    <Gateway>192.168.2.1</Gateway>
+                    <Netmask>255.255.255.0</Netmask>
+                    <IpAddress>192.168.2.1</IpAddress>
+                </SubnetParticipation>
+                <ApplyRateLimit>false</ApplyRateLimit>
+                <UseForDefaultRoute>false</UseForDefaultRoute>
+            </GatewayInterface>
+        </GatewayInterfaces>
+        <EdgeGatewayServiceConfiguration>
+            <FirewallService>
+                <IsEnabled>true</IsEnabled>
+                <DefaultAction>drop</DefaultAction>
+                <LogDefaultAction>false</LogDefaultAction>
+                <FirewallRule>
+                    <Id>1</Id>
+                    <IsEnabled>true</IsEnabled>
+                    <MatchOnTranslate>false</MatchOnTranslate>
+                    <Description>PAT_Fwall</Description>
+                    <Policy>allow</Policy>
+                    <Protocols>
+                        <Tcp>true</Tcp>
+                    </Protocols>
+                    <Port>22</Port>
+                    <DestinationPortRange>22</DestinationPortRange>
+                    <DestinationIp>172.16.151.170</DestinationIp>
+                    <SourcePort>-1</SourcePort>
+                    <SourcePortRange>Any</SourcePortRange>
+                    <SourceIp>Any</SourceIp>
+                    <EnableLogging>true</EnableLogging>
+                </FirewallRule>
+            </FirewallService>
+            <NatService>
+                <IsEnabled>true</IsEnabled>
+                <NatRule>
+                    <RuleType>SNAT</RuleType>
+                    <IsEnabled>true</IsEnabled>
+                    <Id>65537</Id>
+                    <GatewayNatRule>
+                        <Interface href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/fc2999da-2c01-402f-8f8d-ad758e46169d" name="routed-external-network" type="application/vnd.vmware.admin.network+xml" />
+                        <OriginalIp>192.168.2.0/24</OriginalIp>
+                        <TranslatedIp>172.16.151.170</TranslatedIp>
+                    </GatewayNatRule>
+                </NatRule>
+                <NatRule>
+                    <RuleType>DNAT</RuleType>
+                    <IsEnabled>true</IsEnabled>
+                    <Id>65538</Id>
+                    <GatewayNatRule>
+                        <Interface href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/fc2999da-2c01-402f-8f8d-ad758e46169d" name="routed-external-network" type="application/vnd.vmware.admin.network+xml" />
+                        <OriginalIp>172.16.151.170</OriginalIp>
+                        <OriginalPort>22</OriginalPort>
+                        <TranslatedIp>192.168.2.2</TranslatedIp>
+                        <TranslatedPort>22</TranslatedPort>
+                        <Protocol>tcp</Protocol>
+                    </GatewayNatRule>
+                </NatRule>
+            </NatService>
+        </EdgeGatewayServiceConfiguration>
+        <HaEnabled>false</HaEnabled>
+        <UseDefaultRouteForDnsRelay>false</UseDefaultRouteForDnsRelay>
+    </Configuration>
+</EdgeGateway>

@@ -71,6 +71,10 @@ find_gatewayserviceconfiguration = functools.partial(
     find_xpath,
     ".//*[@type='application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml']")
 
+find_networkinterface = functools.partial(
+    find_xpath, ".//*[@type='application/vnd.vmware.admin.network+xml']",
+    namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
+
 find_orgs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.org+xml']")
 
@@ -305,7 +309,7 @@ class PreOperationalAgent(Agent):
         log = logging.getLogger("cloudhands.burst.appliance.preoperation")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
-        macro = PageTemplateFile(pkg_resources.resource_filename(
+        natMacro = PageTemplateFile(pkg_resources.resource_filename(
             "cloudhands.burst.drivers", "NatRule.pt"))
         while True:
             job = yield from self.work.get()
@@ -393,20 +397,6 @@ class PreOperationalAgent(Agent):
                 log.error("Failed to find gateways")
                 continue
 
-            # Network details via query to vdc
-            try:
-                netLink = next(
-                    find_records(tree, rel="orgVdcNetworks"))
-            except StopIteration:
-                log.error("Failed to find network")
-            response = yield from client.request(
-                "GET", netLink.attrib.get("href"),
-                headers=headers)
-            netData = yield from response.read_and_close()
-            tree = ET.fromstring(netData.decode("utf-8"))
-            netDetails = next(
-                find_results(tree, name=config["vdc"]["network"]))
-
             # Gateway data from link
             response = yield from client.request(
                 "GET", gwLink.attrib.get("href"),
@@ -415,13 +405,22 @@ class PreOperationalAgent(Agent):
             tree = ET.fromstring(gwData.decode("utf-8"))
 
             gwRecord = next(
-                find_results(tree, name=config["vdc"]["gateway"]))
+                find_results(tree, name=config["gateway"]["name"]))
 
             response = yield from client.request(
                 "GET", gwRecord.attrib.get("href"),
                 headers=headers)
             gwData = yield from response.read_and_close()
             tree = ET.fromstring(gwData.decode("utf-8"))
+
+            try:
+                interface = next(
+                    find_networkinterface(
+                        tree, name=config["gateway"]["interface"]))
+            except StopIteration:
+                log.error("Failed to find network")
+            else:
+                log.debug(interface)
 
             try:
                 eGSC = next(
@@ -432,7 +431,6 @@ class PreOperationalAgent(Agent):
                 log.error("Missing Edge gateway service configuration")
                 continue
 
-            data = {}
             try:
                 natService = next(
                     i for i in eGSC if i.tag.endswith("NatService"))
@@ -441,32 +439,21 @@ class PreOperationalAgent(Agent):
                     """<NatService><IsEnabled>true</IsEnabled></NatService>""")
                 eGSC.append(natService)
 
-            rules = [
-                {
-                    "typ": "DNAT",
-                    "network": {
-                        "name": config["vdc"]["network"],
-                        "href": netDetails.attrib.get("href")
-                    },
-                    "rule": {
-                        "rx": "172.16.151.166",
-                        "tx": "192.168.2.1",
-                    }
+            # SNAT rule already defined for entire subnet
+            rule = {
+                "typ": "DNAT",
+                "network": {
+                    "name": config["gateway"]["interface"],
+                    "href": interface.attrib.get("href")
                 },
-                {
-                    "typ": "SNAT",
-                    "network": {
-                        "name": config["vdc"]["network"],
-                        "href": netDetails.attrib.get("href")
-                    },
-                    "rule": {
-                        "rx": "192.168.2.1",
-                        "tx": "172.16.151.166",
-                    }
+                "rule": {
+                    "rx": "172.16.151.170",
+                    "tx": "192.168.2.1",
                 }
-            ]
-            for data in rules:
-                natService.append(ET.XML(macro(**data)))
+            }
+            
+            log.debug(rule)
+            natService.append(ET.XML(natMacro(**rule)))
 
             gwServiceCfgs = find_gatewayserviceconfiguration(tree)
             try:
