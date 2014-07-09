@@ -1,44 +1,44 @@
-<VApp xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ns2="http://schemas.dmtf.org/ovf/envelope/1" xmlns:ns3="http://www.vmware.com/vcloud/extension/v1.5" xmlns:ns4="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData" xmlns:ns5="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:ns6="http://www.vmware.com/schema/ovf" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" deployed="false" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a" id="urn:vcloud:vapp:a662ee42-03cd-4201-879c-a55ac11de94a" name="test_02" ovfDescriptorUploaded="true" status="8" type="application/vnd.vmware.vcloud.vApp+xml" xsi:schemaLocation="http://www.vmware.com/vcloud/extension/v1.5 http://172.16.151.139/api/v1.5/schema/vmwextensions.xsd http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2.22.0/CIM_VirtualSystemSettingData.xsd http://www.vmware.com/schema/ovf http://www.vmware.com/schema/ovf http://schemas.dmtf.org/ovf/envelope/1 http://schemas.dmtf.org/ovf/envelope/1/dsp8023_1.1.0.xsd http://www.vmware.com/vcloud/v1.5 http://172.16.151.139/api/v1.5/schema/master.xsd http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2.22.0/CIM_ResourceAllocationSettingData.xsd">
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/power/action/powerOn" rel="power:powerOn" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/deploy" rel="deploy" type="application/vnd.vmware.vcloud.deployVAppParams+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/network/dd6215d9-b624-4bdb-972b-75fa5443dce5" name="un-managed-external-network" rel="down" type="application/vnd.vmware.vcloud.vAppNetwork+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/controlAccess/" rel="down" type="application/vnd.vmware.vcloud.controlAccess+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/controlAccess" rel="controlAccess" type="application/vnd.vmware.vcloud.controlAccess+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/recomposeVApp" rel="recompose" type="application/vnd.vmware.vcloud.recomposeVAppParams+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/enterMaintenanceMode" rel="enterMaintenanceMode" />
+<VApp xmlns="http://www.vmware.com/vcloud/v1.5" xmlns:ns2="http://schemas.dmtf.org/ovf/envelope/1" xmlns:ns3="http://www.vmware.com/vcloud/extension/v1.5" xmlns:ns4="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData" xmlns:ns5="http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData" xmlns:ns6="http://www.vmware.com/schema/ovf" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" deployed="false" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf" id="urn:vcloud:vapp:e462f35d-7e29-4573-9d94-a33e351539cf" name="test_02" ovfDescriptorUploaded="true" status="8" type="application/vnd.vmware.vcloud.vApp+xml" xsi:schemaLocation="http://www.vmware.com/vcloud/extension/v1.5 http://172.16.151.139/api/v1.5/schema/vmwextensions.xsd http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_VirtualSystemSettingData http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2.22.0/CIM_VirtualSystemSettingData.xsd http://www.vmware.com/schema/ovf http://www.vmware.com/schema/ovf http://schemas.dmtf.org/ovf/envelope/1 http://schemas.dmtf.org/ovf/envelope/1/dsp8023_1.1.0.xsd http://www.vmware.com/vcloud/v1.5 http://172.16.151.139/api/v1.5/schema/master.xsd http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2/CIM_ResourceAllocationSettingData http://schemas.dmtf.org/wbem/wscim/1/cim-schema/2.22.0/CIM_ResourceAllocationSettingData.xsd">
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/power/action/powerOn" rel="power:powerOn" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/deploy" rel="deploy" type="application/vnd.vmware.vcloud.deployVAppParams+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/network/99e7f9ee-0181-4cab-8fb7-39daa8190040" name="un-managed-external-network" rel="down" type="application/vnd.vmware.vcloud.vAppNetwork+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/controlAccess/" rel="down" type="application/vnd.vmware.vcloud.controlAccess+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/controlAccess" rel="controlAccess" type="application/vnd.vmware.vcloud.controlAccess+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/recomposeVApp" rel="recompose" type="application/vnd.vmware.vcloud.recomposeVAppParams+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/enterMaintenanceMode" rel="enterMaintenanceMode" />
     <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vdc/4cfa412c-41a8-483b-ad05-62e1ea72da44" rel="up" type="application/vnd.vmware.vcloud.vdc+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a" rel="edit" type="application/vnd.vmware.vcloud.vApp+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a" rel="remove" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/enableDownload" rel="enable" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/disableDownload" rel="disable" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/owner" rel="down" type="application/vnd.vmware.vcloud.owner+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/metadata" rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/ovf" rel="ovf" type="text/xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/productSections/" rel="down" type="application/vnd.vmware.vcloud.productSections+xml" />
-    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/action/createSnapshot" rel="snapshot:create" type="application/vnd.vmware.vcloud.createSnapshotParams+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf" rel="edit" type="application/vnd.vmware.vcloud.vApp+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf" rel="remove" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/enableDownload" rel="enable" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/disableDownload" rel="disable" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/owner" rel="down" type="application/vnd.vmware.vcloud.owner+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/metadata" rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/ovf" rel="ovf" type="text/xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/productSections/" rel="down" type="application/vnd.vmware.vcloud.productSections+xml" />
+    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/action/createSnapshot" rel="snapshot:create" type="application/vnd.vmware.vcloud.createSnapshotParams+xml" />
     <Description>FIXME: Description</Description>
-    <LeaseSettingsSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/leaseSettingsSection/" type="application/vnd.vmware.vcloud.leaseSettingsSection+xml" ns2:required="false">
+    <LeaseSettingsSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/leaseSettingsSection/" type="application/vnd.vmware.vcloud.leaseSettingsSection+xml" ns2:required="false">
         <ns2:Info>Lease settings section</ns2:Info>
-        <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/leaseSettingsSection/" rel="edit" type="application/vnd.vmware.vcloud.leaseSettingsSection+xml" />
+        <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/leaseSettingsSection/" rel="edit" type="application/vnd.vmware.vcloud.leaseSettingsSection+xml" />
         <DeploymentLeaseInSeconds>0</DeploymentLeaseInSeconds>
         <StorageLeaseInSeconds>0</StorageLeaseInSeconds>
     </LeaseSettingsSection>
-    <ns2:StartupSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/startupSection/" type="application/vnd.vmware.vcloud.startupSection+xml">
+    <ns2:StartupSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/startupSection/" type="application/vnd.vmware.vcloud.startupSection+xml">
         <ns2:Info>VApp startup section</ns2:Info>
         <ns2:Item ns2:id="centos6-stemcell" ns2:order="0" ns2:startAction="powerOn" ns2:startDelay="0" ns2:stopAction="powerOff" ns2:stopDelay="0" />
-        <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/startupSection/" rel="edit" type="application/vnd.vmware.vcloud.startupSection+xml" />
+        <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/startupSection/" rel="edit" type="application/vnd.vmware.vcloud.startupSection+xml" />
     </ns2:StartupSection>
-    <ns2:NetworkSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/networkSection/" type="application/vnd.vmware.vcloud.networkSection+xml">
+    <ns2:NetworkSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/networkSection/" type="application/vnd.vmware.vcloud.networkSection+xml">
         <ns2:Info>The list of logical networks</ns2:Info>
         <ns2:Network ns2:name="un-managed-external-network">
             <ns2:Description />
         </ns2:Network>
     </ns2:NetworkSection>
-    <NetworkConfigSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/networkConfigSection/" type="application/vnd.vmware.vcloud.networkConfigSection+xml" ns2:required="false">
+    <NetworkConfigSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/networkConfigSection/" type="application/vnd.vmware.vcloud.networkConfigSection+xml" ns2:required="false">
         <ns2:Info>The configuration parameters for logical networks</ns2:Info>
-        <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/networkConfigSection/" rel="edit" type="application/vnd.vmware.vcloud.networkConfigSection+xml" />
+        <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/networkConfigSection/" rel="edit" type="application/vnd.vmware.vcloud.networkConfigSection+xml" />
         <NetworkConfig networkName="un-managed-external-network">
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/dd6215d9-b624-4bdb-972b-75fa5443dce5/action/reset" rel="repair" />
+            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/network/99e7f9ee-0181-4cab-8fb7-39daa8190040/action/reset" rel="repair" />
             <Description />
             <Configuration>
                 <IpScopes>
@@ -63,21 +63,21 @@
             <IsDeployed>false</IsDeployed>
         </NetworkConfig>
     </NetworkConfigSection>
-    <SnapshotSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a/snapshotSection" type="application/vnd.vmware.vcloud.snapshotSection+xml" ns2:required="false">
+    <SnapshotSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf/snapshotSection" type="application/vnd.vmware.vcloud.snapshotSection+xml" ns2:required="false">
         <ns2:Info>Snapshot information section</ns2:Info>
     </SnapshotSection>
-    <DateCreated>2014-07-03T09:22:21.353+01:00</DateCreated>
+    <DateCreated>2014-07-09T17:31:49.410+01:00</DateCreated>
     <Owner type="application/vnd.vmware.vcloud.owner+xml">
         <User href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/user/cc8a9479-be2d-40c2-8347-b5a0a55d160c" name="system" type="application/vnd.vmware.admin.user+xml" />
     </Owner>
     <InMaintenanceMode>false</InMaintenanceMode>
     <Children>
-        <Vm deployed="false" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4" id="urn:vcloud:vm:ca9f7b28-7473-4293-9a9d-ce836c6017b4" name="centos6-stemcell" needsCustomization="true" nestedHypervisorEnabled="false" status="8" type="application/vnd.vmware.vcloud.vm+xml">
+        <Vm deployed="false" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281" id="urn:vcloud:vm:0f454068-f37d-42d7-a371-fff1a488f281" name="centos6-stemcell" needsCustomization="true" status="8" type="application/vnd.vmware.vcloud.vm+xml">
             <VCloudExtension required="false">
                 <ns3:VmVimInfo>
                     <ns3:VmVimObjectRef>
                         <ns3:VimServerRef href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/extension/vimServer/d901b67e-55ba-4f52-9025-df4a577f3615" name="vjasmin-vc-test" type="application/vnd.vmware.admin.vmwvirtualcenter+xml" />
-                        <ns3:MoRef>vm-567</ns3:MoRef>
+                        <ns3:MoRef>vm-595</ns3:MoRef>
                         <ns3:VimObjectType>VIRTUAL_MACHINE</ns3:VimObjectType>
                     </ns3:VmVimObjectRef>
                     <ns3:DatastoreVimObjectRef>
@@ -93,27 +93,21 @@
                     <ns3:VirtualDisksMaxChainLength>11</ns3:VirtualDisksMaxChainLength>
                 </ns3:VmVimInfo>
             </VCloudExtension>
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/power/action/powerOn" rel="power:powerOn" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/deploy" rel="deploy" type="application/vnd.vmware.vcloud.deployVAppParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4" rel="edit" type="application/vnd.vmware.vcloud.vm+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4" rel="remove" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/metadata" rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/complianceResult" rel="down" type="application/vnd.vmware.vm.complianceResult+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/productSections/" rel="down" type="application/vnd.vmware.vcloud.productSections+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/screen" rel="screen:thumbnail" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/media/action/insertMedia" rel="media:insertMedia" type="application/vnd.vmware.vcloud.mediaInsertOrEjectParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/media/action/ejectMedia" rel="media:ejectMedia" type="application/vnd.vmware.vcloud.mediaInsertOrEjectParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/disk/action/attach" rel="disk:attach" type="application/vnd.vmware.vcloud.diskAttachOrDetachParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/disk/action/detach" rel="disk:detach" type="application/vnd.vmware.vcloud.diskAttachOrDetachParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/consolidate" rel="consolidate" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/relocate" rel="relocate" type="application/vnd.vmware.vcloud.relocateVmParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/enableNestedHypervisor" rel="enable" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/checkCompliance" rel="checkCompliance" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/createSnapshot" rel="snapshot:create" type="application/vnd.vmware.vcloud.createSnapshotParams+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/action/reconfigureVm" name="centos6-stemcell" rel="reconfigureVm" type="application/vnd.vmware.vcloud.vm+xml" />
-            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-a662ee42-03cd-4201-879c-a55ac11de94a" rel="up" type="application/vnd.vmware.vcloud.vApp+xml" />
+            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/metadata" rel="down" type="application/vnd.vmware.vcloud.metadata+xml" />
+            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/productSections/" rel="down" type="application/vnd.vmware.vcloud.productSections+xml" />
+            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/screen" rel="screen:thumbnail" />
+            <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vapp-e462f35d-7e29-4573-9d94-a33e351539cf" rel="up" type="application/vnd.vmware.vcloud.vApp+xml" />
             <Description />
-            <ns2:VirtualHardwareSection ns2:transport="" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/" type="application/vnd.vmware.vcloud.virtualHardwareSection+xml">
+            <Tasks>
+                <Task cancelRequested="false" expiryTime="2014-10-07T17:32:53.253+01:00" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/task/0bcbca3c-8ab5-4ab7-bd2f-b9ebe93f60d2" id="urn:vcloud:task:0bcbca3c-8ab5-4ab7-bd2f-b9ebe93f60d2" name="task" operation="Updating Virtual Machine centos6-stemcell(0f454068-f37d-42d7-a371-fff1a488f281)" operationName="vappUpdateVm" serviceNamespace="com.vmware.vcloud" startTime="2014-07-09T17:32:53.253+01:00" status="running" type="application/vnd.vmware.vcloud.task+xml">
+                    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/task/0bcbca3c-8ab5-4ab7-bd2f-b9ebe93f60d2/action/cancel" rel="task:cancel" />
+                    <Owner href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281" name="centos6-stemcell" type="application/vnd.vmware.vcloud.vm+xml" />
+                    <User href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/admin/user/04689d16-a695-4ccd-bce2-7c5a5cf7fff3" name="system" type="application/vnd.vmware.admin.user+xml" />
+                    <Organization href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/org/6483ae7d-2307-4856-a1c9-109751545b4c" name="un-managed_tenancy_test_org" type="application/vnd.vmware.vcloud.org+xml" />
+                    <Details />
+                </Task>
+            </Tasks>
+            <ns2:VirtualHardwareSection ns2:transport="" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/" type="application/vnd.vmware.vcloud.virtualHardwareSection+xml">
                 <ns2:Info>Virtual hardware requirements</ns2:Info>
                 <ns2:System>
                     <ns4:ElementName>Virtual Hardware Family</ns4:ElementName>
@@ -122,10 +116,10 @@
                     <ns4:VirtualSystemType>vmx-10</ns4:VirtualSystemType>
                 </ns2:System>
                 <ns2:Item>
-                    <ns5:Address>00:50:56:01:00:c5</ns5:Address>
+                    <ns5:Address>00:50:56:01:00:d3</ns5:Address>
                     <ns5:AddressOnParent>0</ns5:AddressOnParent>
                     <ns5:AutomaticAllocation>true</ns5:AutomaticAllocation>
-                    <ns5:Connection ipAddress="192.168.2.5" ipAddressingMode="POOL" primaryNetworkConnection="true">un-managed-external-network</ns5:Connection>
+                    <ns5:Connection ipAddress="192.168.2.6" ipAddressingMode="POOL" primaryNetworkConnection="true">un-managed-external-network</ns5:Connection>
                     <ns5:Description>Vmxnet3 ethernet adapter on "un-managed-external-network"</ns5:Description>
                     <ns5:ElementName>Network adapter 0</ns5:ElementName>
                     <ns5:InstanceID>1</ns5:InstanceID>
@@ -175,7 +169,7 @@
                     <ns5:InstanceID>8000</ns5:InstanceID>
                     <ns5:ResourceType>14</ns5:ResourceType>
                 </ns2:Item>
-                <ns2:Item href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/cpu" type="application/vnd.vmware.vcloud.rasdItem+xml">
+                <ns2:Item href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/cpu" type="application/vnd.vmware.vcloud.rasdItem+xml">
                     <ns5:AllocationUnits>hertz * 10^6</ns5:AllocationUnits>
                     <ns5:Description>Number of Virtual CPUs</ns5:Description>
                     <ns5:ElementName>1 virtual CPU(s)</ns5:ElementName>
@@ -185,9 +179,9 @@
                     <ns5:VirtualQuantity>1</ns5:VirtualQuantity>
                     <ns5:Weight>0</ns5:Weight>
                     <ns6:CoresPerSocket ns2:required="false">1</ns6:CoresPerSocket>
-                    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/cpu" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
+                    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/cpu" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
                 </ns2:Item>
-                <ns2:Item href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/memory" type="application/vnd.vmware.vcloud.rasdItem+xml">
+                <ns2:Item href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/memory" type="application/vnd.vmware.vcloud.rasdItem+xml">
                     <ns5:AllocationUnits>byte * 2^20</ns5:AllocationUnits>
                     <ns5:Description>Memory Size</ns5:Description>
                     <ns5:ElementName>2048 MB of memory</ns5:ElementName>
@@ -196,70 +190,62 @@
                     <ns5:ResourceType>4</ns5:ResourceType>
                     <ns5:VirtualQuantity>2048</ns5:VirtualQuantity>
                     <ns5:Weight>0</ns5:Weight>
-                    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/memory" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
+                    <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/memory" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
                 </ns2:Item>
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/" rel="edit" type="application/vnd.vmware.vcloud.virtualHardwareSection+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/cpu" rel="down" type="application/vnd.vmware.vcloud.rasdItem+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/cpu" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/memory" rel="down" type="application/vnd.vmware.vcloud.rasdItem+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/memory" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/disks" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/disks" rel="edit" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/media" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/networkCards" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/networkCards" rel="edit" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/serialPorts" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/virtualHardwareSection/serialPorts" rel="edit" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/" rel="edit" type="application/vnd.vmware.vcloud.virtualHardwareSection+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/cpu" rel="down" type="application/vnd.vmware.vcloud.rasdItem+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/cpu" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/memory" rel="down" type="application/vnd.vmware.vcloud.rasdItem+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/memory" rel="edit" type="application/vnd.vmware.vcloud.rasdItem+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/disks" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/disks" rel="edit" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/media" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/networkCards" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/networkCards" rel="edit" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/serialPorts" rel="down" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/virtualHardwareSection/serialPorts" rel="edit" type="application/vnd.vmware.vcloud.rasdItemsList+xml" />
             </ns2:VirtualHardwareSection>
-            <ns2:OperatingSystemSection ns2:id="101" ns6:osType="centos64Guest" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/operatingSystemSection/" type="application/vnd.vmware.vcloud.operatingSystemSection+xml">
+            <ns2:OperatingSystemSection ns2:id="101" ns6:osType="centos64Guest" href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/operatingSystemSection/" type="application/vnd.vmware.vcloud.operatingSystemSection+xml">
                 <ns2:Info>Specifies the operating system installed</ns2:Info>
                 <ns2:Description>CentOS 4/5/6 (64-bit)</ns2:Description>
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/operatingSystemSection/" rel="edit" type="application/vnd.vmware.vcloud.operatingSystemSection+xml" />
+                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/operatingSystemSection/" rel="edit" type="application/vnd.vmware.vcloud.operatingSystemSection+xml" />
             </ns2:OperatingSystemSection>
-            <NetworkConnectionSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/networkConnectionSection/" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" ns2:required="false">
+            <NetworkConnectionSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/networkConnectionSection/" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" ns2:required="false">
                 <ns2:Info>Specifies the available VM network connections</ns2:Info>
                 <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
                 <NetworkConnection needsCustomization="true" network="un-managed-external-network">
                     <NetworkConnectionIndex>0</NetworkConnectionIndex>
-                    <IpAddress>192.168.2.5</IpAddress>
+                    <IpAddress>192.168.2.6</IpAddress>
                     <IsConnected>true</IsConnected>
-                    <MACAddress>00:50:56:01:00:c5</MACAddress>
+                    <MACAddress>00:50:56:01:00:d3</MACAddress>
                     <IpAddressAllocationMode>POOL</IpAddressAllocationMode>
                 </NetworkConnection>
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/networkConnectionSection/" rel="edit" type="application/vnd.vmware.vcloud.networkConnectionSection+xml" />
             </NetworkConnectionSection>
-            <GuestCustomizationSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/guestCustomizationSection/" type="application/vnd.vmware.vcloud.guestCustomizationSection+xml" ns2:required="false">
+            <GuestCustomizationSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/guestCustomizationSection/" type="application/vnd.vmware.vcloud.guestCustomizationSection+xml" ns2:required="false">
                 <ns2:Info>Specifies Guest OS Customization Settings</ns2:Info>
                 <Enabled>true</Enabled>
                 <ChangeSid>false</ChangeSid>
-                <VirtualMachineId>ca9f7b28-7473-4293-9a9d-ce836c6017b4</VirtualMachineId>
+                <VirtualMachineId>0f454068-f37d-42d7-a371-fff1a488f281</VirtualMachineId>
                 <JoinDomainEnabled>false</JoinDomainEnabled>
                 <UseOrgSettings>false</UseOrgSettings>
                 <AdminPasswordEnabled>true</AdminPasswordEnabled>
                 <AdminPasswordAuto>false</AdminPasswordAuto>
                 <AdminPassword>jasminadmin</AdminPassword>
                 <AdminAutoLogonEnabled>false</AdminAutoLogonEnabled>
-                <AdminAutoLogonCount>1</AdminAutoLogonCount>
+                <AdminAutoLogonCount>0</AdminAutoLogonCount>
                 <ResetPasswordRequired>false</ResetPasswordRequired>
-                <CustomizationScript>#!/bin/sh
-if [ x$1 == x"precustomization" ]; then
-/root/pre_customisation.sh
-elif [ x$1 == x"postcustomization" ]; then
-/root/post_customisation.sh
-fi</CustomizationScript>
+                <CustomizationScript>&amp;#13;#!/bin/sh&amp;#13;if [ x$1 ==x&amp;quot;precustomization&amp;quot; ]; then&amp;#13;mkdir /root/.ssh/&amp;#13;echo&amp;quot;ssh-rsaAAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw==cl@eduserv.org.uk&amp;quot;&amp;#13;&amp;gt;&amp;gt;/root/.ssh/authorized_keys&amp;#13;/root/pre_customisation.sh&amp;#13;elif [ x$1 ==x&amp;quot;postcustomization&amp;quot; ];then&amp;#13;/root/post_customisation.sh&amp;#13;fi&amp;#13;</CustomizationScript>
                 <ComputerName>centos6</ComputerName>
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/guestCustomizationSection/" rel="edit" type="application/vnd.vmware.vcloud.guestCustomizationSection+xml" />
             </GuestCustomizationSection>
-            <RuntimeInfoSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/runtimeInfoSection" type="application/vnd.vmware.vcloud.virtualHardwareSection+xml">
+            <RuntimeInfoSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/runtimeInfoSection" type="application/vnd.vmware.vcloud.virtualHardwareSection+xml">
                 <ns2:Info>Specifies Runtime info</ns2:Info>
                 <VMWareTools version="9344" />
             </RuntimeInfoSection>
-            <SnapshotSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/snapshotSection" type="application/vnd.vmware.vcloud.snapshotSection+xml" ns2:required="false">
+            <SnapshotSection href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/snapshotSection" type="application/vnd.vmware.vcloud.snapshotSection+xml" ns2:required="false">
                 <ns2:Info>Snapshot information section</ns2:Info>
             </SnapshotSection>
             <VAppScopedLocalId>centos6</VAppScopedLocalId>
-            <VmCapabilities href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/vmCapabilities/" type="application/vnd.vmware.vcloud.vmCapabilitiesSection+xml">
-                <Link href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-ca9f7b28-7473-4293-9a9d-ce836c6017b4/vmCapabilities/" rel="edit" type="application/vnd.vmware.vcloud.vmCapabilitiesSection+xml" />
+            <VmCapabilities href="https://vjasmin-vcloud-test.jc.rl.ac.uk/api/vApp/vm-0f454068-f37d-42d7-a371-fff1a488f281/vmCapabilities/" type="application/vnd.vmware.vcloud.vmCapabilitiesSection+xml">
                 <MemoryHotAddEnabled>true</MemoryHotAddEnabled>
                 <CpuHotAddEnabled>true</CpuHotAddEnabled>
             </VmCapabilities>

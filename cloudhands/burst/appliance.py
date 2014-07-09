@@ -71,6 +71,16 @@ find_gatewayserviceconfiguration = functools.partial(
     find_xpath,
     ".//*[@type='application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml']")
 
+def find_networkconnectionsection(tree): 
+    elems = find_xpath(
+        ".//*[@type='application/vnd.vmware.vcloud.networkConnectionSection+xml']",
+        tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
+    return (i for i in elems if i.tag.endswith("NetworkConnectionSection"))
+
+def find_networkconnection(tree): 
+    return (i for s in find_networkconnectionsection(tree) for i in s
+            if i.tag.endswith("NetworkConnection"))
+
 find_networkinterface = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.admin.network+xml']",
     namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
@@ -122,15 +132,15 @@ class PreCheckAgent(Agent):
 
     CheckedAsOperational = namedtuple(
         "CheckedAsOperational",
-        ["uuid", "ts", "provider", "creation", "power", "health"])
+        ["uuid", "ts", "provider", "ip", "creation", "power", "health"])
 
     CheckedAsPreOperational = namedtuple(
         "CheckedAsPreOperational",
-        ["uuid", "ts", "provider", "creation", "power", "health"])
+        ["uuid", "ts", "provider", "ip", "creation", "power", "health"])
 
     CheckedAsProvisioning = namedtuple(
         "CheckedAsProvisioning",
-        ["uuid", "ts", "provider", "creation", "power", "health"])
+        ["uuid", "ts", "provider", "ip", "creation", "power", "health"])
 
     @property
     def callbacks(self):
@@ -173,10 +183,11 @@ class PreCheckAgent(Agent):
             Provider.name==msg.provider).one()
         act = Touch(
             artifact=app, actor=actor, state=preoperational, at=msg.ts)
-        resource = ProviderReport(
+        ip = IPAddress(value=msg.ip, touch=act, provider=provider)
+        report = ProviderReport(
             creation=msg.creation, power=msg.power, health=msg.health,
             touch=act, provider=provider)
-        session.add(resource)
+        session.add_all((ip, report))
         session.commit()
         return act
 
@@ -253,7 +264,16 @@ class PreCheckAgent(Agent):
                 scriptElement = next(find_customizationscript(tree))
             except StopIteration:
                 log.error("Missing customisation script")
+                continue
             else:
+                try:
+                    nc = next(find_networkconnection(tree))
+                except StopIteration:
+                    log.debug("Missing network connection")
+                    ipAddr = None
+                else:
+                    ipAddr = next(i for i in nc if i.tag.endswith("IpAddress"))
+
                 script = unescape_script(scriptElement.text).splitlines()
                 if len(script) > 6:
                     # Customisation script is in place
@@ -266,7 +286,7 @@ class PreCheckAgent(Agent):
                         else "undeployed")
             msg = messageType(
                 app.uuid, datetime.datetime.utcnow(),
-                node.provider.name,
+                node.provider.name, ipAddr.text,
                 creation, None, None
             )
             log.debug(msg)
@@ -323,6 +343,27 @@ class PreOperationalAgent(Agent):
             node = next(i for i in resources if isinstance(i, Node))
             config = Strategy.config(node.provider.name)
             network = config.get("vdc", "network", fallback=None)
+
+            try:
+                privateIP = next(
+                    i for i in resources if isinstance(i, IPAddress))
+            except StopIteration:
+                log.error("No IPAddress")
+                continue
+            else:
+                log.debug(privateIP.value)
+
+            try:
+                subs = next(i for i in app.organisation.subscriptions
+                            if i.provider.name == node.provider.name)
+                publicIP = next(r for c in subs.changes for r in resources
+                                 if isinstance(r, IPAddress))
+            except StopIteration:
+                log.error("No NATRouting")
+                continue
+            else:
+                log.debug(publicIP.value)
+                #FIXME: add test
 
             # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
@@ -448,21 +489,22 @@ class PreOperationalAgent(Agent):
                 log.error("Failed to find firewall service")
 
             # SNAT rule already defined for entire subnet
-            rule = {
+            defn = {
                 "typ": "DNAT",
                 "network": {
                     "name": config["gateway"]["interface"],
                     "href": interface.attrib.get("href")
                 },
                 "rule": {
+                    #"rx": publicIP.value,
                     "rx": "172.16.151.170",
-                    "tx": "192.168.2.1",
+                    "tx": privateIP.value,
                 },
                 "description": "Public IP PNAT"
             }
             
-            fwService.append(ET.XML(fwMacro(**rule)))
-            natService.append(ET.XML(natMacro(**rule)))
+            fwService.append(ET.XML(fwMacro(**defn)))
+            natService.append(ET.XML(natMacro(**defn)))
             ET.dump(eGSC)
 
             gwServiceCfgs = find_gatewayserviceconfiguration(tree)
@@ -479,16 +521,14 @@ class PreOperationalAgent(Agent):
                 headers=headers,
                 data=ET.tostring(eGSC, encoding="utf-8"))
             reply = yield from response.read_and_close()
-            log.debug(reply)
 
-#Content-Type: application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml
-            #msg = PreOperationalAgent.Message(
-            #    app.uuid, datetime.datetime.utcnow(),
-            #    node.provider.name,
-            #    creation, None, None
-            #)
-            #log.debug(msg)
-            #yield from msgQ.put(msg)
+            msg = PreOperationalAgent.Message(
+                app.uuid, datetime.datetime.utcnow(),
+                node.provider.name,
+                defn["rule"]["tx"], defn["rule"]["rx"]
+            )
+            log.debug(msg)
+            yield from msgQ.put(msg)
 
 
 class PreProvisionAgent(Agent):

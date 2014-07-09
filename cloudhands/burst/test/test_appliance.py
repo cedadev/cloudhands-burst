@@ -239,7 +239,7 @@ class PreCheckAgentTesting(AgentTesting):
         msg = PreCheckAgent.CheckedAsOperational(
             app.uuid, datetime.datetime.utcnow(),
             "cloudhands.jasmin.vcloud.phase04.cfg",
-            "deployed", "on", None)
+            "192.168.2.1", "deployed", "on", None)
         rv = message_handler(msg, session)
         self.assertIsInstance(rv, Touch)
 
@@ -275,7 +275,7 @@ class PreCheckAgentTesting(AgentTesting):
         msg = PreCheckAgent.CheckedAsPreOperational(
             app.uuid, datetime.datetime.utcnow(),
             "cloudhands.jasmin.vcloud.phase04.cfg",
-            "deployed", "off", None)
+            "192.168.2.1", "deployed", "off", None)
         rv = message_handler(msg, session)
         self.assertIsInstance(rv, Touch)
 
