@@ -311,6 +311,8 @@ class PreOperationalAgent(Agent):
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         natMacro = PageTemplateFile(pkg_resources.resource_filename(
             "cloudhands.burst.drivers", "NatRule.pt"))
+        fwMacro = PageTemplateFile(pkg_resources.resource_filename(
+            "cloudhands.burst.drivers", "FirewallRule.pt"))
         while True:
             job = yield from self.work.get()
             app = job.artifact
@@ -439,6 +441,12 @@ class PreOperationalAgent(Agent):
                     """<NatService><IsEnabled>true</IsEnabled></NatService>""")
                 eGSC.append(natService)
 
+            try:
+                fwService = next(
+                    i for i in eGSC if i.tag.endswith("FirewallService"))
+            except StopIteration:
+                log.error("Failed to find firewall service")
+
             # SNAT rule already defined for entire subnet
             rule = {
                 "typ": "DNAT",
@@ -449,11 +457,13 @@ class PreOperationalAgent(Agent):
                 "rule": {
                     "rx": "172.16.151.170",
                     "tx": "192.168.2.1",
-                }
+                },
+                "description": "Public IP PNAT"
             }
             
-            log.debug(rule)
+            fwService.append(ET.XML(fwMacro(**rule)))
             natService.append(ET.XML(natMacro(**rule)))
+            ET.dump(eGSC)
 
             gwServiceCfgs = find_gatewayserviceconfiguration(tree)
             try:
