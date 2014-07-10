@@ -524,7 +524,7 @@ class PreOperationalAgent(Agent):
                     "href": interface.attrib.get("href")
                 },
                 "rule": {
-                    #"rx": publicIP.value,
+                    # FIXME: "rx": publicIP.value,
                     "rx": "172.16.151.170",
                     "tx": privateIP.value,
                 },
@@ -549,6 +549,23 @@ class PreOperationalAgent(Agent):
                 headers=headers,
                 data=ET.tostring(eGSC, encoding="utf-8"))
             reply = yield from response.read_and_close()
+
+            # TODO: Need to deploy VM after Customization Task is
+            # complete
+            """
+            <DeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
+            powerOn="xs:boolean" deploymentLeaseSeconds="xs:int"
+            forceCustomization="xs:boolean"/>
+            """
+            #url = "{vdc}/{endpoint}".format(
+            #    vdc=vApp.attrib.get("href"),
+            #    endpoint="action/deploy")
+            #del headers["Content-Type"]
+            #response = yield from client.request(
+            #    "POST", url, headers=headers)
+            #reply = yield from response.read_and_close()
+            #tree = ET.fromstring(reply.decode("utf-8"))
+            #ET.dump(tree)
 
             msg = PreOperationalAgent.Message(
                 app.uuid, datetime.datetime.utcnow(),
@@ -757,18 +774,6 @@ class PreProvisionAgent(Agent):
                 log.error("Failed to find vapp")
             else:
                 log.debug(vApp.attrib.get("href"))
-
-                # FIXME: Need to deploy VM after Customization Task is
-                # complete. Move to PreOperationalAgent
-                #url = "{vdc}/{endpoint}".format(
-                #    vdc=vApp.attrib.get("href"),
-                #    endpoint="action/deploy")
-                #del headers["Content-Type"]
-                #response = yield from client.request(
-                #    "POST", url, headers=headers)
-                #reply = yield from response.read_and_close()
-                #tree = ET.fromstring(reply.decode("utf-8"))
-                #ET.dump(tree)
 
                 msg = PreProvisionAgent.Message(
                     app.uuid, datetime.datetime.utcnow(),
