@@ -9,6 +9,7 @@ import uuid
 
 from cloudhands.burst.agent import message_handler
 from cloudhands.burst.appliance import PreCheckAgent
+from cloudhands.burst.appliance import PreDeleteAgent
 from cloudhands.burst.appliance import PreOperationalAgent
 from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import ProvisioningAgent
@@ -284,6 +285,57 @@ class PreCheckAgentTesting(AgentTesting):
         self.assertEqual(report.creation, "deployed")
         self.assertEqual(report.power, "off")
         self.assertEqual("pre_operational", app.changes[-1].state.name)
+
+
+class PreDeleteAgentTesting(AgentTesting):
+
+    def test_handler_registration(self):
+        q = asyncio.Queue()
+        agent = PreDeleteAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+        self.assertEqual(
+            agent.touch_to_deleted,
+            message_handler.dispatch(PreDeleteAgent.Message)
+        )
+
+
+    def test_queue_creation(self):
+        self.assertIsInstance(
+            PreDeleteAgent.queue(None, None, loop=None),
+            asyncio.Queue
+        )
+
+    def test_msg_dispatch_and_touch(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        now = datetime.datetime.utcnow()
+        operational = session.query(ApplianceState).filter(
+            ApplianceState.name == "operational").one()
+        app = Appliance(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            )
+        act = Touch(artifact=app, actor=user, state=operational, at=now)
+        session.add(act)
+        session.commit()
+
+        self.assertEqual(0, session.query(ProviderReport).count())
+        q = PreDeleteAgent.queue(None, None, loop=None)
+        agent = PreDeleteAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+
+        msg = PreDeleteAgent.Message(
+            app.uuid, datetime.datetime.utcnow(),
+            "cloudhands.jasmin.vcloud.phase04.cfg")
+        rv = message_handler(msg, session)
+        self.assertIsInstance(rv, Touch)
+
+        self.assertEqual("deleted", app.changes[-1].state.name)
 
 
 class PreOperationalAgentTesting(AgentTesting):

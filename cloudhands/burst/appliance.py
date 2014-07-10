@@ -293,6 +293,24 @@ class PreCheckAgent(Agent):
             yield from msgQ.put(msg)
 
 
+class PreDeleteAgent(Agent):
+
+    Message = namedtuple(
+        "DeletedMessage", ["uuid", "ts", "provider"])
+
+    @property
+    def callbacks(self):
+        return [(PreDeleteAgent.Message, self.touch_to_deleted)]
+
+    def jobs(self, session):
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "pre_delete"]
+
+    def touch_to_deleted(self, msg:Message, session):
+        operational = session.query(ApplianceState).filter(
+            ApplianceState.name == "deleted").one()
+
+
 class PreOperationalAgent(Agent):
 
     Message = namedtuple(
