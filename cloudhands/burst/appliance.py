@@ -307,8 +307,18 @@ class PreDeleteAgent(Agent):
                 if i.changes[-1].state.name == "pre_delete"]
 
     def touch_to_deleted(self, msg:Message, session):
-        operational = session.query(ApplianceState).filter(
+        deleted = session.query(ApplianceState).filter(
             ApplianceState.name == "deleted").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(artifact=app, actor=actor, state=deleted, at=msg.ts)
+        session.add(act)
+        session.commit()
+        return act
 
 
 class PreOperationalAgent(Agent):
@@ -881,6 +891,34 @@ class ProvisioningAgent(Agent):
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())
             yield from msgQ.put(msg)
+
+
+class PreStartAgent(Agent):
+
+    Message = namedtuple(
+        "OperationalMessage", ["uuid", "ts", "provider"])
+
+    @property
+    def callbacks(self):
+        return [(PreStartAgent.Message, self.touch_to_operational)]
+
+    def jobs(self, session):
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "pre_start"]
+
+    def touch_to_operational(self, msg:Message, session):
+        operational = session.query(ApplianceState).filter(
+            ApplianceState.name == "operational").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(artifact=app, actor=actor, state=operational, at=msg.ts)
+        session.add(act)
+        session.commit()
+        return act
 
 
 ### Old code below for deletion ####
