@@ -14,6 +14,7 @@ from cloudhands.burst.appliance import PreOperationalAgent
 from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import ProvisioningAgent
 from cloudhands.burst.appliance import PreStartAgent
+from cloudhands.burst.appliance import PreStopAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import Registry
@@ -659,7 +660,6 @@ class PreStartAgentTesting(AgentTesting):
             message_handler.dispatch(PreStartAgent.Message)
         )
 
-
     def test_queue_creation(self):
         self.assertIsInstance(
             PreStartAgent.queue(None, None, loop=None),
@@ -696,6 +696,56 @@ class PreStartAgentTesting(AgentTesting):
         self.assertIsInstance(rv, Touch)
 
         self.assertEqual("operational", app.changes[-1].state.name)
+
+
+class PreStopAgentTesting(AgentTesting):
+
+    def test_handler_registration(self):
+        q = asyncio.Queue()
+        agent = PreStopAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+        self.assertEqual(
+            agent.touch_to_stopped,
+            message_handler.dispatch(PreStopAgent.Message)
+        )
+
+    def test_queue_creation(self):
+        self.assertIsInstance(
+            PreStopAgent.queue(None, None, loop=None),
+            asyncio.Queue
+        )
+
+    def test_msg_dispatch_and_touch(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        org = session.query(Organisation).one()
+
+        now = datetime.datetime.utcnow()
+        operational = session.query(ApplianceState).filter(
+            ApplianceState.name == "operational").one()
+        app = Appliance(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__,
+            organisation=org,
+            )
+        act = Touch(artifact=app, actor=user, state=operational, at=now)
+        session.add(act)
+        session.commit()
+
+        self.assertEqual(0, session.query(ProviderReport).count())
+        q = PreStopAgent.queue(None, None, loop=None)
+        agent = PreStopAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+
+        msg = PreStopAgent.Message(
+            app.uuid, datetime.datetime.utcnow(),
+            "cloudhands.jasmin.vcloud.phase04.cfg")
+        rv = message_handler(msg, session)
+        self.assertIsInstance(rv, Touch)
+
+        self.assertEqual("stopped", app.changes[-1].state.name)
 
 
 class ApplianceTesting(AgentTesting):

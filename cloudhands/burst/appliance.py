@@ -921,6 +921,34 @@ class PreStartAgent(Agent):
         return act
 
 
+class PreStopAgent(Agent):
+
+    Message = namedtuple(
+        "StoppedMessage", ["uuid", "ts", "provider"])
+
+    @property
+    def callbacks(self):
+        return [(PreStopAgent.Message, self.touch_to_stopped)]
+
+    def jobs(self, session):
+        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+                if i.changes[-1].state.name == "pre_stop"]
+
+    def touch_to_stopped(self, msg:Message, session):
+        stopped = session.query(ApplianceState).filter(
+            ApplianceState.name == "stopped").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(artifact=app, actor=actor, state=stopped, at=msg.ts)
+        session.add(act)
+        session.commit()
+        return act
+
+
 ### Old code below for deletion ####
 class ApplianceAgent:
 
