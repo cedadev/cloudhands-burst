@@ -55,6 +55,7 @@ def operate(loop, msgQ, workers, args, config):
     pending = set()
     log.info("Starting task scheduler.")
     while any(task for task in tasks if not task.done()):
+        yield from asyncio.sleep(0)
         for worker in workers:
             for job in worker.jobs(session):
                 if job.uuid not in pending:

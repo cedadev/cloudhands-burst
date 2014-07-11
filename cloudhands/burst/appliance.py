@@ -224,6 +224,7 @@ class PreCheckAgent(Agent):
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         while True:
             job = yield from self.work.get()
+            log.debug(job)
             app = job.artifact
             resources = sorted(
                 (r for c in app.changes for r in c.resources),
@@ -281,8 +282,11 @@ class PreCheckAgent(Agent):
                     log.debug("Missing network connection")
                     creation = "undeployed"
                 else:
-                    ipAddr = next(
-                        i for i in nc if i.tag.endswith("IpAddress")).text
+                    try:
+                        ipAddr = next(
+                            i for i in nc if i.tag.endswith("IpAddress")).text
+                    except Exception as e:
+                        log.error(e)
 
                 script = unescape_script(scriptElement.text).splitlines()
                 if len(script) > 6:

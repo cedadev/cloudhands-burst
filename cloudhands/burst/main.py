@@ -38,6 +38,7 @@ DFLT_DB = ":memory:"
 
 
 def main(args):
+    logging.getLogger("asyncio").setLevel(args.log_level)
     log = logging.getLogger("cloudhands.burst")
     log.setLevel(args.log_level)
 
