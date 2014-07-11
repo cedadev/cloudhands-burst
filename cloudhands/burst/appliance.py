@@ -327,6 +327,60 @@ class PreDeleteAgent(Agent):
         session.commit()
         return act
 
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ, *args):
+        log = logging.getLogger("cloudhands.burst.appliance.predelete")
+        log.info("Activated.")
+        ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        while True:
+            job = yield from self.work.get()
+            app = job.artifact
+            resources = sorted(
+                (r for c in app.changes for r in c.resources),
+                key=operator.attrgetter("touch.at"),
+                reverse=True)
+            node = next(i for i in resources if isinstance(i, Node))
+            config = Strategy.config(node.provider.name)
+
+            # FIXME: Tokens to be maintained in database. Start of login code
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            response = yield from client.request(
+                "POST", url,
+                auth=(config["user"]["name"], config["user"]["pass"]),
+                headers=headers)
+            headers["x-vcloud-authorization"] = response.headers.get(
+                "x-vcloud-authorization")
+            # FIXME: End of login code
+
+            del headers["Content-Type"]
+            response = yield from client.request(
+                "DELETE", node.uri,
+                headers=headers)
+            reply = yield from response.read_and_close()
+
+            msg = PreDeleteAgent.Message(
+                app.uuid, datetime.datetime.utcnow(),
+                node.provider.name
+            )
+            yield from msgQ.put(msg)
+
 
 class PreOperationalAgent(Agent):
 
@@ -945,6 +999,68 @@ class PreStopAgent(Agent):
         session.add(act)
         session.commit()
         return act
+
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ, *args):
+        log = logging.getLogger("cloudhands.burst.appliance.prestop")
+        log.info("Activated.")
+        ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        while True:
+            job = yield from self.work.get()
+            app = job.artifact
+            resources = sorted(
+                (r for c in app.changes for r in c.resources),
+                key=operator.attrgetter("touch.at"),
+                reverse=True)
+            node = next(i for i in resources if isinstance(i, Node))
+            config = Strategy.config(node.provider.name)
+
+            # FIXME: Tokens to be maintained in database. Start of login code
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            response = yield from client.request(
+                "POST", url,
+                auth=(config["user"]["name"], config["user"]["pass"]),
+                headers=headers)
+            headers["x-vcloud-authorization"] = response.headers.get(
+                "x-vcloud-authorization")
+            # FIXME: End of login code
+
+            unDeploy = textwrap.dedent("""
+            <UndeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5">
+            <UndeployPowerAction>powerOff</UndeployPowerAction>
+            </UndeployVAppParams>
+            """)
+            url = "{}/action/undeploy".format(node.uri)
+            headers["Content-Type"] = (
+                "application/vnd.vmware.vcloud.undeployVAppParams+xml")
+            response = yield from client.request(
+                "POST", url,
+                headers=headers,
+                data=unDeploy.encode("utf-8"))
+            reply = yield from response.read_and_close()
+
+            msg = PreStopAgent.Message(
+                app.uuid, datetime.datetime.utcnow(),
+                node.provider.name
+            )
+            yield from msgQ.put(msg)
 
 
 ### Old code below for deletion ####

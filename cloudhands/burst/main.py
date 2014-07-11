@@ -17,6 +17,7 @@ from cloudhands.burst.appliance import ApplianceAgent # TODO: remove
 from cloudhands.burst.appliance import PreCheckAgent
 from cloudhands.burst.appliance import PreOperationalAgent
 from cloudhands.burst.appliance import PreProvisionAgent
+from cloudhands.burst.appliance import PreStopAgent
 from cloudhands.burst.appliance import ProvisioningAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
@@ -63,6 +64,7 @@ def main(args):
         PreCheckAgent,
         PreOperationalAgent,
         PreProvisionAgent,
+        PreStopAgent,
         ProvisioningAgent,
     ):
         workQ = agentType.queue(args, config, loop=loop)
