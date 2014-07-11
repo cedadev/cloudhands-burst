@@ -9,6 +9,7 @@ import datetime
 import functools
 import logging
 import operator
+import textwrap
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 
@@ -289,7 +290,6 @@ class PreCheckAgent(Agent):
                 node.provider.name, ipAddr.text,
                 creation, None, None
             )
-            log.debug(msg)
             yield from msgQ.put(msg)
 
 
@@ -490,8 +490,6 @@ class PreOperationalAgent(Agent):
                         tree, name=config["gateway"]["interface"]))
             except StopIteration:
                 log.error("Failed to find network")
-            else:
-                log.debug(interface)
 
             try:
                 eGSC = next(
@@ -533,7 +531,6 @@ class PreOperationalAgent(Agent):
             
             fwService.append(ET.XML(fwMacro(**defn)))
             natService.append(ET.XML(natMacro(**defn)))
-            ET.dump(eGSC)
 
             gwServiceCfgs = find_gatewayserviceconfiguration(tree)
             try:
@@ -550,13 +547,19 @@ class PreOperationalAgent(Agent):
                 data=ET.tostring(eGSC, encoding="utf-8"))
             reply = yield from response.read_and_close()
 
-            # TODO: Need to deploy VM after Customization Task is
-            # complete
-            """
+            deploy = textwrap.dedent("""
             <DeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
-            powerOn="xs:boolean" deploymentLeaseSeconds="xs:int"
-            forceCustomization="xs:boolean"/>
-            """
+            powerOn="true" />
+            """)
+            url = "{}/action/deploy".format(node.uri)
+            headers["Content-Type"] = (
+                "application/vnd.vmware.vcloud.deployVAppParams+xml")
+            response = yield from client.request(
+                "POST", url,
+                headers=headers,
+                data=deploy.encode("utf-8"))
+            reply = yield from response.read_and_close()
+
             #url = "{vdc}/{endpoint}".format(
             #    vdc=vApp.attrib.get("href"),
             #    endpoint="action/deploy")
@@ -572,7 +575,6 @@ class PreOperationalAgent(Agent):
                 node.provider.name,
                 defn["rule"]["tx"], defn["rule"]["rx"]
             )
-            log.debug(msg)
             yield from msgQ.put(msg)
 
 
@@ -773,7 +775,6 @@ class PreProvisionAgent(Agent):
                 #TODO: Check error for duplicate, take action
                 log.error("Failed to find vapp")
             else:
-                log.debug(vApp.attrib.get("href"))
 
                 msg = PreProvisionAgent.Message(
                     app.uuid, datetime.datetime.utcnow(),
@@ -857,7 +858,6 @@ class ProvisioningAgent(Agent):
             # FIXME: End of login code
 
             url = "{}/guestCustomizationSection".format(node.uri)
-            log.debug(url)
             response = yield from client.request(
                 "GET", node.uri, headers=headers)
             reply = yield from response.read_and_close()
@@ -869,7 +869,6 @@ class ProvisioningAgent(Agent):
                 log.error("Missing customisation script")
                 ET.dump(tree)
             else:
-                ET.dump(sectionElement)
                 scriptElement = next(find_customizationscript(tree))
                 scriptElement.text = xml.sax.saxutils.escape(
                     customizationScript, entities={
@@ -891,7 +890,6 @@ class ProvisioningAgent(Agent):
                     headers=headers,
                     data=ET.tostring(sectionElement, encoding="utf-8"))
                 reply = yield from response.read_and_close()
-                log.debug(reply)
 
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())

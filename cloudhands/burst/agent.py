@@ -67,8 +67,13 @@ def operate(loop, msgQ, workers, args, config):
         try:
             while True:
                 msg = msgQ.get_nowait()
-                act = message_handler(msg, session)
-                log.debug(act)
-                pending.discard(act.artifact.uuid)
+                try:
+                    act = message_handler(msg, session)
+                except Exception as e:
+                    session.rollback()
+                    log.error(e)
+                else:
+                    pending.discard(act.artifact.uuid)
+                    log.debug(msg)
         except asyncio.QueueEmpty:
             continue
