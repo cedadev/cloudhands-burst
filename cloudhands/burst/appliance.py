@@ -72,6 +72,13 @@ find_gatewayserviceconfiguration = functools.partial(
     find_xpath,
     ".//*[@type='application/vnd.vmware.admin.edgeGatewayServiceConfiguration+xml']")
 
+def find_ipranges(tree, namespace="http://www.vmware.com/vcloud/v1.5"): 
+    ranges = tree.iter("{{{}}}IpRange".format(namespace))
+    for r in ranges:
+        yield (
+            r.find("{{{}}}StartAddress".format(namespace)),
+            r.find("{{{}}}EndAddress".format(namespace)))
+
 def find_networkconnectionsection(tree): 
     elems = find_xpath(
         ".//*[@type='application/vnd.vmware.vcloud.networkConnectionSection+xml']",
@@ -211,7 +218,7 @@ class PreCheckAgent(Agent):
         return act
 
     @asyncio.coroutine
-    def __call__(self, loop, msgQ):
+    def __call__(self, loop, msgQ, *args):
         log = logging.getLogger("cloudhands.burst.appliance.precheck")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
@@ -353,7 +360,7 @@ class PreOperationalAgent(Agent):
         return act
 
     @asyncio.coroutine
-    def __call__(self, loop, msgQ):
+    def __call__(self, loop, msgQ, session):
         log = logging.getLogger("cloudhands.burst.appliance.preoperation")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
@@ -381,17 +388,16 @@ class PreOperationalAgent(Agent):
             else:
                 log.debug(privateIP.value)
 
+            # TODO: modify this query to claim the next free/permitted
+            # IPAddress for the subscription.
             try:
                 subs = next(i for i in app.organisation.subscriptions
                             if i.provider.name == node.provider.name)
-                publicIP = next(r for c in subs.changes for r in resources
+                publicIP = next(r for c in subs.changes for r in c.resources
                                  if isinstance(r, IPAddress))
             except StopIteration:
-                log.error("No NATRouting")
+                log.error("No public IP Addresses available")
                 continue
-            else:
-                log.debug(publicIP.value)
-                #FIXME: add test
 
             # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
@@ -522,8 +528,7 @@ class PreOperationalAgent(Agent):
                     "href": interface.attrib.get("href")
                 },
                 "rule": {
-                    # FIXME: "rx": publicIP.value,
-                    "rx": "172.16.151.170",
+                    "rx": publicIP.value,
                     "tx": privateIP.value,
                 },
                 "description": "Public IP PNAT"
@@ -559,16 +564,6 @@ class PreOperationalAgent(Agent):
                 headers=headers,
                 data=deploy.encode("utf-8"))
             reply = yield from response.read_and_close()
-
-            #url = "{vdc}/{endpoint}".format(
-            #    vdc=vApp.attrib.get("href"),
-            #    endpoint="action/deploy")
-            #del headers["Content-Type"]
-            #response = yield from client.request(
-            #    "POST", url, headers=headers)
-            #reply = yield from response.read_and_close()
-            #tree = ET.fromstring(reply.decode("utf-8"))
-            #ET.dump(tree)
 
             msg = PreOperationalAgent.Message(
                 app.uuid, datetime.datetime.utcnow(),
@@ -609,7 +604,7 @@ class PreProvisionAgent(Agent):
         return act
  
     @asyncio.coroutine
-    def __call__(self, loop, msgQ):
+    def __call__(self, loop, msgQ, *args):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
@@ -814,7 +809,7 @@ class ProvisioningAgent(Agent):
         return act
  
     @asyncio.coroutine
-    def __call__(self, loop, msgQ):
+    def __call__(self, loop, msgQ, *args):
         log = logging.getLogger("cloudhands.burst.appliance.provisioning")
         log.info("Activated.")
         while True:

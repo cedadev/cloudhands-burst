@@ -23,7 +23,7 @@
                     <IpRanges>
                         <IpRange>
                             <StartAddress>172.16.151.170</StartAddress>
-                            <EndAddress>172.16.151.170</EndAddress>
+                            <EndAddress>172.16.151.171</EndAddress>
                         </IpRange>
                     </IpRanges>
                 </SubnetParticipation>

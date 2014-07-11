@@ -49,9 +49,9 @@ def message_handler(msg, *args, **kwargs):
 @asyncio.coroutine
 def operate(loop, msgQ, workers, args, config):
     log = logging.getLogger("cloudhands.burst.operate")
-    tasks = [asyncio.Task(w(loop, msgQ)) for w in workers]
     session = Registry().connect(sqlite3, args.db).session
     initialise(session)
+    tasks = [asyncio.Task(w(loop, msgQ, session)) for w in workers]
     pending = set()
     log.info("Starting task scheduler.")
     while any(task for task in tasks if not task.done()):

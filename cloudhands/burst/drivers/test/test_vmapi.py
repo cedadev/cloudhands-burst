@@ -10,6 +10,7 @@ import pkg_resources
 
 from cloudhands.burst.appliance import find_catalogueitems
 from cloudhands.burst.appliance import find_customizationscript
+from cloudhands.burst.appliance import find_ipranges
 from cloudhands.burst.appliance import find_networkconnection
 from cloudhands.burst.appliance import find_orgs
 from cloudhands.burst.appliance import find_results
@@ -554,6 +555,15 @@ class XMLTests(unittest.TestCase):
         elems = list(find_networkconnection(tree))
         self.assertEqual(1, len(elems))
 
+    def test_iprange_from_edgegateway(self):
+        data = pkg_resources.resource_string(
+            "cloudhands.burst.drivers.test", "edgeGateway.xml")
+        tree = ET.fromstring(data)
+        rv = list(find_ipranges(tree))
+        self.assertEqual(1, len(rv))
+        self.assertEqual(
+            ("172.16.151.170", "172.16.151.171"),
+            tuple(i.text for i in rv[0]))
 
 class APITemplateTests(unittest.TestCase):
 
