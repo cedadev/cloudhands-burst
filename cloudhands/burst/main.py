@@ -18,6 +18,7 @@ from cloudhands.burst.appliance import PreCheckAgent
 from cloudhands.burst.appliance import PreDeleteAgent
 from cloudhands.burst.appliance import PreOperationalAgent
 from cloudhands.burst.appliance import PreProvisionAgent
+from cloudhands.burst.appliance import PreStartAgent
 from cloudhands.burst.appliance import PreStopAgent
 from cloudhands.burst.appliance import ProvisioningAgent
 from cloudhands.burst.subscription import SubscriptionAgent
@@ -66,6 +67,7 @@ def main(args):
         PreDeleteAgent,
         PreOperationalAgent,
         PreProvisionAgent,
+        PreStartAgent,
         PreStopAgent,
         ProvisioningAgent,
     ):
@@ -75,8 +77,13 @@ def main(args):
             message_handler.register(typ, handler)
         workers.append(agent)
 
-    loop.run_until_complete(operate(loop, msgQ, workers, args, config))
-    loop.close()
+    try:
+        loop.run_until_complete(operate(loop, msgQ, workers, args, config))
+    except KeyboardInterrupt:
+        # TODO: Task audit
+        pass
+    finally:
+        loop.close()
 
     return 0
     ### Old code below for deletion ####

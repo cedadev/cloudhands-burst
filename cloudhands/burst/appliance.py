@@ -267,20 +267,22 @@ class PreCheckAgent(Agent):
             vApp = yield from response.read_and_close()
             tree = ET.fromstring(vApp.decode("utf-8"))
 
+            creation = "unknown"
+            ipAddr = None
             messageType = PreCheckAgent.CheckedAsProvisioning
             try:
                 scriptElement = next(find_customizationscript(tree))
             except StopIteration:
                 log.error("Missing customisation script")
-                continue
             else:
                 try:
                     nc = next(find_networkconnection(tree))
                 except StopIteration:
                     log.debug("Missing network connection")
-                    ipAddr = None
+                    creation = "undeployed"
                 else:
-                    ipAddr = next(i for i in nc if i.tag.endswith("IpAddress"))
+                    ipAddr = next(
+                        i for i in nc if i.tag.endswith("IpAddress")).text
 
                 script = unescape_script(scriptElement.text).splitlines()
                 if len(script) > 6:
@@ -290,11 +292,12 @@ class PreCheckAgent(Agent):
                         if i.touch.state.name == "operational")
                         else PreCheckAgent.CheckedAsPreOperational)
 
-            creation = ("deployed" if tree.attrib.get("deployed") == "true"
-                        else "undeployed")
+            if tree.attrib.get("deployed") == "true":
+                creation = "deployed"
+
             msg = messageType(
                 app.uuid, datetime.datetime.utcnow(),
-                node.provider.name, ipAddr.text,
+                node.provider.name, ipAddr,
                 creation, None, None
             )
             yield from msgQ.put(msg)

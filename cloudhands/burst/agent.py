@@ -59,6 +59,7 @@ def operate(loop, msgQ, workers, args, config):
             for job in worker.jobs(session):
                 if job.uuid not in pending:
                     pending.add(job.uuid)
+                    log.debug("Sending {} to {}.".format(job, worker))
                     yield from worker.work.put(job)
 
         pause = 0.1 if pending else 1
@@ -74,6 +75,7 @@ def operate(loop, msgQ, workers, args, config):
                     log.error(e)
                 else:
                     pending.discard(act.artifact.uuid)
+                    session.expire_all()
                     log.debug(msg)
         except asyncio.QueueEmpty:
             continue
