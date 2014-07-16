@@ -25,7 +25,7 @@ setup(
     description="Cross-cloud bursting for cloudhands PaaS",
     author="D Haynes",
     author_email="david.e.haynes@stfc.ac.uk",
-    url="http://pypi.python.org/pypi/cloudhands-burst",
+    url="https://github.com/cedadev/cloudhands-burst.git",
     long_description=__doc__,
     classifiers=[
         "Operating System :: OS Independent",
@@ -50,7 +50,7 @@ setup(
         "cloudhands.burst.test": [],
         },
     install_requires=[
-        "cloudhands-common>=0.23",
+        "cloudhands-common>=0.24",
         "aiohttp>=0.8.2",
         "apache-libcloud>=0.13.0",
         "Chameleon>=2.14",
