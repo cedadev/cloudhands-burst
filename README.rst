@@ -1,65 +1,31 @@
 ..  Titling
     ##++::==~~--''``
 
-Cloudhands is a `Platform as a Service` (PaaS) framework.
+Cloudhands burst controller
+:::::::::::::::::::::::::::
 
-This release
-::::::::::::
 
-Cloudhands is a very young project. This release contains the following:
+    Cloudhands is a `Platform as a Service` (PaaS) framework. It gives you the
+    software necessary to run a private computing cloud for your business or
+    organisation. A key objective is support for multiple back-end providers.
 
-* basic service discovery
+    Cloudhands is a very young project. As of Autumn 2014, it is under
+    heavy development and features are added daily. 
+
+    You are welcome to give `cloudhands` a try, but be aware that some parts
+    of the codebase lack the test coverage of a finished product. Improvements
+    to documentation are ongoing.
 
 Requirements
 ::::::::::::
 
-Cloudhands requires Python 3. It uses setuptools_ for installation.
-
-You may wish to `compile Python 3.4`_ yourself if it is not yet available from
-your package repository.
-
-Quick start
-:::::::::::
-
-Download and unpack the source distribution::
-
-    $ tar -xzvf cloudhands-burst-0.001.tar.gz
-    $ cd cloudhands-burst-0.001
-
-Run the tests::
-
-    $ python3.4 -m unittest discover cloudhands
-
-Roadmap
-:::::::
-
-Cloudhands's mission is to provide a robust Pythonic framework to provision
-and manage scientific analysis in the cloud.
-
-It is developed in the UK and released to the public under a `BSD licence`_.
-
-The API may change significantly as the project proceeds. At this early stage,
-you should only use the latest release, which may not be compatible with
-previous versions.
-
-Next release
-============
-
-TBD
-
-Can you help?
-=============
-
-* If you've spotted a bug in Cloudhands, please let us know so we can fix it.
-* If you think Cloudhands lacks a feature, you can help drive development by
-  describing your Use Case.
-
+This is a sub-package of the cloudhands framework. To use it you need to begin
+with the `Cloudhands operations package`_. All instructions are contained there.
 
 :author:    D Haynes
 :contact:   david.e.haynes@stfc.ac.uk
 :copyright: 2013 UK Science and Technology Facilities Council
-:licence:   BSD
+:licence:   BSD_
 
-.. _setuptools: https://pypi.python.org/pypi/setuptools
-.. _compile Python 3.4: http://www.python.org/download/source/
-.. _BSD licence: http://opensource.org/licenses/BSD-3-Clause
+.. _Cloudhands operations package: https://github.com/cedadev/cloudhands-ops
+.. _BSD: http://opensource.org/licenses/BSD-3-Clause
