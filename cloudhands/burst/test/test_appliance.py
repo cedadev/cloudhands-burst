@@ -349,7 +349,12 @@ class PreOperationalAgentTesting(AgentTesting):
             message_handler.register(typ, handler)
         self.assertEqual(
             agent.touch_to_operational,
-            message_handler.dispatch(PreOperationalAgent.Message)
+            message_handler.dispatch(PreOperationalAgent.OperationalMessage)
+        )
+        self.assertEqual(
+            agent.touch_to_prestop,
+            message_handler.dispatch(
+                PreOperationalAgent.ResourceConstrainedMessage)
         )
 
     def test_queue_creation(self):
@@ -381,7 +386,7 @@ class PreOperationalAgentTesting(AgentTesting):
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
 
-        msg = PreOperationalAgent.Message(
+        msg = PreOperationalAgent.OperationalMessage(
             app.uuid, datetime.datetime.utcnow(),
             "cloudhands.jasmin.vcloud.phase04.cfg",
             "192.168.2.1",

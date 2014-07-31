@@ -390,19 +390,26 @@ class PreDeleteAgent(Agent):
 
 class PreOperationalAgent(Agent):
 
-    Message = namedtuple(
+    OperationalMessage = namedtuple(
         "OperationalMessage",
+        ["uuid", "ts", "provider", "ip_internal", "ip_external"])
+
+    ResourceConstrainedMessage = namedtuple(
+        "ResourceConstrainedMessage",
         ["uuid", "ts", "provider", "ip_internal", "ip_external"])
 
     @property
     def callbacks(self):
-        return [(PreOperationalAgent.Message, self.touch_to_operational)]
+        return [
+            (PreOperationalAgent.OperationalMessage, self.touch_to_operational),
+            (PreOperationalAgent.ResourceConstrainedMessage, self.touch_to_prestop),
+        ]
 
     def jobs(self, session):
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_operational"]
 
-    def touch_to_operational(self, msg:Message, session):
+    def touch_to_operational(self, msg:OperationalMessage, session):
         operational = session.query(ApplianceState).filter(
             ApplianceState.name == "operational").one()
         app = session.query(Appliance).filter(
@@ -416,6 +423,20 @@ class PreOperationalAgent(Agent):
             touch=act, provider=provider,
             ip_int=msg.ip_internal, ip_ext=msg.ip_external)
         session.add(resource)
+        session.commit()
+        return act
+
+    def touch_to_prestop(self, msg:ResourceConstrainedMessage, session):
+        prestop = session.query(ApplianceState).filter(
+            ApplianceState.name == "pre_stop").one()
+        app = session.query(Appliance).filter(
+            Appliance.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        provider = session.query(Provider).filter(
+            Provider.name==msg.provider).one()
+        act = Touch(artifact=app, actor=actor, state=prestop, at=msg.ts)
+        session.add(act)
         session.commit()
         return act
 
@@ -448,16 +469,23 @@ class PreOperationalAgent(Agent):
             else:
                 log.debug(privateIP.value)
 
-            # TODO: modify this query to claim the next free/permitted
-            # IPAddress for the subscription.
-            try:
-                subs = next(i for i in app.organisation.subscriptions
-                            if i.provider.name == node.provider.name)
-                publicIP = next(r for c in subs.changes for r in c.resources
-                                 if isinstance(r, IPAddress))
-            except StopIteration:
-                log.error("No public IP Addresses available")
+            subs = next(i for i in app.organisation.subscriptions
+                        if i.provider.name == node.provider.name)
+            ipPool = {r.value for c in subs.changes for r in c.resources
+                             if isinstance(r, IPAddress)}
+            ipTaken = {i.ip_ext for i in session.query(NATRouting).join(
+                Provider).filter(Provider.name == node.provider.name).all()}
+            if not ipPool.difference(ipTaken):
+                log.warning("No public IP Addresses available")
+                msg = PreOperationalAgent.ResourceConstrainedMessage(
+                    app.uuid, datetime.datetime.utcnow(),
+                    node.provider.name, privateIP.value, None
+                )
+                yield from msgQ.put(msg)
                 continue
+
+            publicIP = session.query(IPAddress).filter(
+                IPAddress.value == ipPool.pop()).first()
 
             # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
@@ -625,7 +653,7 @@ class PreOperationalAgent(Agent):
                 data=deploy.encode("utf-8"))
             reply = yield from response.read_and_close()
 
-            msg = PreOperationalAgent.Message(
+            msg = PreOperationalAgent.OperationalMessage(
                 app.uuid, datetime.datetime.utcnow(),
                 node.provider.name,
                 defn["rule"]["tx"], defn["rule"]["rx"]
