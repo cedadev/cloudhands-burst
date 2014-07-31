@@ -38,6 +38,76 @@ from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
 from cloudhands.common.schema import Touch
 
+__doc__ = """
+
+
+.. graphviz::
+
+   digraph appliance {
+    center = true;
+    compound = true;
+    nodesep = 0.6;
+    edge [decorate,labeldistance=3,labelfontname=helvetica,
+        labelfontsize=10,labelfloat=false];
+
+    subgraph cluster_states {
+        label = "Static";
+        configuring -> pre_provision [style=invis];
+        pre_check -> pre_operational [style=invis];
+        pre_operational -> pre_delete [style=invis];
+        pre_delete -> deleted [style=invis];
+        deleted -> pre_stop [style=invis];
+        stopped -> pre_start [style=invis];
+
+    subgraph cluster_super {
+        label = "Active";
+        node [height=1,width=2];
+        provisioning -> operational [style=invis];
+    }
+
+    }
+
+    pre_provision -> provisioning [style=invis];
+    operational -> pre_check [style=invis];
+
+    configuring -> pre_provision [taillabel="user"];
+    operational -> pre_check [ltail=cluster_super,taillabel="user"];
+    operational -> pre_stop [taillabel="user"];
+
+    subgraph cluster_agents {
+        label = "Burst controller";
+        style = filled;
+        node [shape=box];
+        pre_provision_agent -> provisioning_agent [style=invis];
+        provisioning_agent -> pre_check_agent [style=invis];
+        pre_check_agent -> pre_operational_agent [style=invis];
+        pre_operational_agent -> pre_delete_agent [style=invis];
+        pre_delete_agent -> pre_stop_agent [style=invis];
+        pre_stop_agent -> pre_start_agent [style=invis];
+    }
+
+    pre_provision -> pre_provision_agent[style=dashed,arrowhead=none];
+    pre_provision_agent -> provisioning;
+
+    provisioning -> provisioning_agent [taillabel="delay",style=dashed,arrowhead=none];
+    provisioning_agent -> pre_check;
+    pre_check -> pre_check_agent [style=dashed,arrowhead=none];
+    pre_check_agent -> operational;
+    pre_check_agent -> pre_operational;
+    pre_operational -> pre_operational_agent [style=dashed,arrowhead=none];
+    pre_operational -> pre_stop [taillabel="out of resource"];
+    pre_operational_agent -> operational;
+    pre_delete -> pre_delete_agent [style=dashed,arrowhead=none];
+    pre_delete_agent -> deleted;
+    pre_stop -> pre_stop_agent [style=dashed,arrowhead=none];
+    pre_stop_agent -> stopped;
+    stopped -> pre_delete [taillabel="user"];
+    stopped -> pre_start [taillabel="user"];
+    pre_start -> pre_start_agent [style=dashed,arrowhead=none,weight=2];
+    pre_start_agent -> operational [tailport=w,weight=6];
+   }
+"""
+
 # FIXME:
 customizationScript = """
 #!/bin/sh
