@@ -13,7 +13,6 @@ import time
 
 from cloudhands.burst.agent import message_handler
 from cloudhands.burst.agent import operate
-from cloudhands.burst.appliance import ApplianceAgent # TODO: remove
 from cloudhands.burst.appliance import PreCheckAgent
 from cloudhands.burst.appliance import PreDeleteAgent
 from cloudhands.burst.appliance import PreOperationalAgent
@@ -87,25 +86,6 @@ def main(args):
         loop.close()
 
     return 0
-    ### Old code below for deletion ####
-    session = Registry().connect(sqlite3, args.db).session
-    initialise(session)
-
-    loop = sched.scheduler()
-
-    sA = SubscriptionAgent(args, config, session, loop)
-    sA.touch_unchecked(priority=1)
-
-    aA = ApplianceAgent(args, config, session, loop)
-    aA.touch_pre_provision(priority=1)
-    aA.touch_pre_operational(priority=1)
-    #aA.touch_deleting(priority=2)
-
-    if args.interval:
-        loop.run()
-        return 1
-    else:
-        return 0
 
 
 def parser(descr=__doc__):
