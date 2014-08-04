@@ -12,7 +12,6 @@ def find_xpath(xpath, tree, namespaces={}, **kwargs):
         return (i for i in elements if query.issubset(set(i.attrib.items())))
 
 def unescape_script(text):
-    data = ''.join(text.splitlines())
     return xml.sax.saxutils.unescape(
-        data, entities={
+        text, entities={
             "&quot;": '"', "&#13;": "\n", "&#37;": "%", "&apos;": "'"})

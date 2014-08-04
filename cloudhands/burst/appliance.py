@@ -109,14 +109,12 @@ __doc__ = """
 """
 
 # FIXME:
-customizationScript = """
-#!/bin/sh
-if [ x$1 ==x"precustomization" ]; then
+customizationScript = """#!/bin/sh
+if [ x$1 == x"precustomization" ]; then
 mkdir /root/.ssh/
-echo"ssh-rsaAAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw==cl@eduserv.org.uk"
->>/root/.ssh/authorized_keys
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw== cl@eduserv.org.uk" >>/root/.ssh/authorized_keys
 /root/pre_customisation.sh
-elif [ x$1 ==x"postcustomization" ];then
+elif [ x$1 == x"postcustomization" ]; then
 /root/post_customisation.sh
 fi
 """
@@ -1010,10 +1008,12 @@ class ProvisioningAgent(Agent):
                 ET.dump(tree)
             else:
                 scriptElement = next(find_customizationscript(tree))
-                scriptElement.text = xml.sax.saxutils.escape(
-                    customizationScript, entities={
-                        '"': "&quot;", "\n": "&#13;",
-                        "%": "&#37;", "'": "&apos;"})
+                #scriptElement.text = xml.sax.saxutils.escape(
+                #    customizationScript, entities={
+                #        '"': "&quot;", "\n": "&#13;",
+                #        "%": "&#37;", "'": "&apos;"})
+
+                scriptElement.text = customizationScript
 
                 # Auto-logon count must be within 1 to 100 range if
                 # enabled or 0 otherwise

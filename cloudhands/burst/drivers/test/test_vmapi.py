@@ -79,16 +79,20 @@ type="application/vnd.vmware.vcloud.catalogItem+xml" />
 </Catalog>
 """
 
-text_customizationscript = """
-#!/bin/sh&#13;if [ x$1 ==
-x&quot;precustomization&quot; ]; then&#13;mkdir /root/.ssh/&#13;echo
-&quot;ssh-rsa
-AAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw==
-cl@eduserv.org.uk&quot; &gt;&gt;
-/root/.ssh/authorized_keys&#13;/root/pre_customisation.sh&#13;elif [ x$1 ==
-x&quot;postcustomization&quot; ];
-then&#13;/root/post_customisation.sh&#13;fi
-"""
+text_customizationscript = (
+"#!/bin/sh&#13;if [ x$1 == x&quot;precustomization&quot; ]; then&#13;"
+"mkdir /root/.ssh/&#13;"
+"echo &quot;ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAr"
+"a3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt"
+"3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/"
+"8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy"
+"71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MAN"
+"prbw== cl@eduserv.org.uk&quot; &gt;&gt;"
+"/root/.ssh/authorized_keys&#13;/root/pre_customisation.sh&#13;"
+"elif [ x$1 == x&quot;postcustomization&quot; ]; then&#13;"
+"/root/post_customisation.sh&#13;"
+"fi"
+)
 
 xml_error = """
 <Error xmlns="http://www.vmware.com/vcloud/v1.5"
