@@ -58,6 +58,7 @@ __doc__ = """
         pre_delete -> deleted [style=invis];
         deleted -> pre_stop [style=invis];
         stopped -> pre_start [style=invis];
+        pre_start -> running [style=invis];
 
     subgraph cluster_super {
         label = "Active";
@@ -104,7 +105,8 @@ __doc__ = """
     stopped -> pre_delete [taillabel="user"];
     stopped -> pre_start [taillabel="user"];
     pre_start -> pre_start_agent [style=dashed,arrowhead=none,weight=2];
-    pre_start_agent -> operational [tailport=w,weight=6];
+    pre_start_agent -> running [tailport=w,weight=6];
+    running -> pre_stop [taillabel="user"];
    }
 """
 
