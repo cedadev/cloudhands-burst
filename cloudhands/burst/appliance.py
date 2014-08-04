@@ -710,20 +710,6 @@ class PreOperationalAgent(Agent):
                 data=ET.tostring(eGSC, encoding="utf-8"))
             reply = yield from response.read_and_close()
 
-            # TODO: Do this only in PreStartAgent?
-            deploy = textwrap.dedent("""
-            <DeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
-            powerOn="true" />
-            """)
-            url = "{}/action/deploy".format(node.uri)
-            headers["Content-Type"] = (
-                "application/vnd.vmware.vcloud.deployVAppParams+xml")
-            response = yield from client.request(
-                "POST", url,
-                headers=headers,
-                data=deploy.encode("utf-8"))
-            reply = yield from response.read_and_close()
-
             msg = PreOperationalAgent.OperationalMessage(
                 app.uuid, datetime.datetime.utcnow(),
                 node.provider.name,
@@ -1057,22 +1043,22 @@ class PreStartAgent(Agent):
 
     @property
     def callbacks(self):
-        return [(PreStartAgent.Message, self.touch_to_operational)]
+        return [(PreStartAgent.Message, self.touch_to_running)]
 
     def jobs(self, session):
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_start"]
 
-    def touch_to_operational(self, msg:Message, session):
-        operational = session.query(ApplianceState).filter(
-            ApplianceState.name == "operational").one()
+    def touch_to_running(self, msg:Message, session):
+        running = session.query(ApplianceState).filter(
+            ApplianceState.name == "running").one()
         app = session.query(Appliance).filter(
             Appliance.uuid == msg.uuid).first()
         actor = session.query(Component).filter(
             Component.handle=="burst.controller").one()
         provider = session.query(Provider).filter(
             Provider.name==msg.provider).one()
-        act = Touch(artifact=app, actor=actor, state=operational, at=msg.ts)
+        act = Touch(artifact=app, actor=actor, state=running, at=msg.ts)
         session.add(act)
         session.commit()
         return act
@@ -1084,53 +1070,58 @@ class PreStartAgent(Agent):
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         while True:
             job = yield from self.work.get()
-            app = job.artifact
-            resources = sorted(
-                (r for c in app.changes for r in c.resources),
-                key=operator.attrgetter("touch.at"),
-                reverse=True)
-            node = next(i for i in resources if isinstance(i, Node))
-            config = Strategy.config(node.provider.name)
+            try:
+                app = job.artifact
+                resources = sorted(
+                    (r for c in app.changes for r in c.resources),
+                    key=operator.attrgetter("touch.at"),
+                    reverse=True)
+                node = next(i for i in resources if isinstance(i, Node))
+                config = Strategy.config(node.provider.name)
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
-            headers = {
-                "Accept": "application/*+xml;version=5.5",
-            }
-
-            client = aiohttp.client.HttpClient(
-                ["{host}:{port}".format(
+                # FIXME: Tokens to be maintained in database. Start of login code
+                url = "{scheme}://{host}:{port}/{endpoint}".format(
+                    scheme="https",
                     host=config["host"]["name"],
-                    port=config["host"]["port"])
-                ],
-                verify_ssl=config["host"].getboolean("verify_ssl_cert")
-            )
+                    port=config["host"]["port"],
+                    endpoint="api/sessions")
 
-            response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-            # FIXME: End of login code
+                headers = {
+                    "Accept": "application/*+xml;version=5.5",
+                }
 
-            deploy = textwrap.dedent("""
-            <DeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
-            powerOn="true" />
-            """)
-            url = "{}/action/deploy".format(node.uri)
-            headers["Content-Type"] = (
-                "application/vnd.vmware.vcloud.deployVAppParams+xml")
-            response = yield from client.request(
-                "POST", url,
-                headers=headers,
-                data=deploy.encode("utf-8"))
-            reply = yield from response.read_and_close()
+                client = aiohttp.client.HttpClient(
+                    ["{host}:{port}".format(
+                        host=config["host"]["name"],
+                        port=config["host"]["port"])
+                    ],
+                    verify_ssl=config["host"].getboolean("verify_ssl_cert")
+                )
+
+                response = yield from client.request(
+                    "POST", url,
+                    auth=(config["user"]["name"], config["user"]["pass"]),
+                    headers=headers)
+                headers["x-vcloud-authorization"] = response.headers.get(
+                    "x-vcloud-authorization")
+                # FIXME: End of login code
+
+                deploy = textwrap.dedent("""
+                <DeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
+                powerOn="true" />
+                """)
+                url = "{}/action/deploy".format(node.uri)
+                headers["Content-Type"] = (
+                    "application/vnd.vmware.vcloud.deployVAppParams+xml")
+                response = yield from client.request(
+                    "POST", url,
+                    headers=headers,
+                    data=deploy.encode("utf-8"))
+                reply = yield from response.read_and_close()
+
+            except Exception as e:
+                log.error(e)
+                continue
 
             msg = PreStartAgent.Message(
                 app.uuid, datetime.datetime.utcnow(),

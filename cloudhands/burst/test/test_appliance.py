@@ -661,7 +661,7 @@ class PreStartAgentTesting(AgentTesting):
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
         self.assertEqual(
-            agent.touch_to_operational,
+            agent.touch_to_running,
             message_handler.dispatch(PreStartAgent.Message)
         )
 
@@ -700,7 +700,7 @@ class PreStartAgentTesting(AgentTesting):
         rv = message_handler(msg, session)
         self.assertIsInstance(rv, Touch)
 
-        self.assertEqual("operational", app.changes[-1].state.name)
+        self.assertEqual("running", app.changes[-1].state.name)
 
 
 class PreStopAgentTesting(AgentTesting):
