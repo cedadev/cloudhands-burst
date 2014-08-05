@@ -61,6 +61,14 @@ def main(args):
     loop = asyncio.get_event_loop()
     msgQ = asyncio.Queue(loop=loop)
 
+    if args.log_level == logging.DEBUG:
+        try:
+            loop.set_debug(True)
+        except AttributeError:
+            log.info("Upgrade to Python 3.4.2 for asyncio debug mode")
+        else:
+            log.info("Event loop debug mode is {}".format(loop.get_debug()))
+
     workers = []
     for agentType in (
         PreCheckAgent,

@@ -70,13 +70,13 @@ def operate(loop, msgQ, workers, args, config):
             while True:
                 msg = msgQ.get_nowait()
                 try:
-                    act = message_handler(msg, session)
+                    act = session.merge(message_handler(msg, session))
                 except Exception as e:
                     session.rollback()
                     log.error(e)
                 else:
                     pending.discard(act.artifact.uuid)
-                    session.expire_all()
+                    session.refresh(act.artifact)
                     log.debug(msg)
         except asyncio.QueueEmpty:
             continue
