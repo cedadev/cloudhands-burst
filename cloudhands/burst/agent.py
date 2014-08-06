@@ -46,6 +46,7 @@ def message_handler(msg, *args, **kwargs):
     warnings.warn("No handler for {}".format(type(msg)))
     pass
 
+
 @asyncio.coroutine
 def operate(loop, msgQ, workers, args, config):
     log = logging.getLogger("cloudhands.burst.operate")
@@ -76,7 +77,7 @@ def operate(loop, msgQ, workers, args, config):
                     log.error(e)
                 else:
                     pending.discard(act.artifact.uuid)
-                    session.refresh(act.artifact)
+                    session.close()  # Refresh or expire not effective here
                     log.debug(msg)
         except asyncio.QueueEmpty:
             continue
