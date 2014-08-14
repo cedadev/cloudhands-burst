@@ -3,55 +3,73 @@
 
 import asyncio
 import datetime
+import os.path
 import sqlite3
+import tempfile
 import unittest
 import uuid
 
 from cloudhands.burst.agent import message_handler
-from cloudhands.burst.appliance.test.test_appliance import AgentTesting
+from cloudhands.burst.test.test_appliance import AgentTesting
 from cloudhands.burst.session import SessionAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import Registry
-from cloudhands.common.fsm import ApplianceState
-from cloudhands.common.schema import Appliance
-from cloudhands.common.schema import CatalogueChoice
-from cloudhands.common.schema import CatalogueItem
-from cloudhands.common.schema import Component
-from cloudhands.common.schema import IPAddress
-from cloudhands.common.schema import Label
-from cloudhands.common.schema import NATRouting
-from cloudhands.common.schema import Node
-from cloudhands.common.schema import Organisation
-from cloudhands.common.schema import Provider
-from cloudhands.common.schema import ProviderReport
-from cloudhands.common.schema import SoftwareDefinedNetwork
-from cloudhands.common.schema import State
-from cloudhands.common.schema import Touch
-from cloudhands.common.schema import User
+from cloudhands.common.pipes import PipeQueue
 
 
 class SessionAgentTesting(AgentTesting):
 
     def test_handler_registration(self):
         q = asyncio.Queue()
-        agent = PreCheckAgent(q, args=None, config=None)
+        agent = SessionAgent(q, args=None, config=None)
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
         self.assertEqual(
-            agent.touch_to_operational,
-            message_handler.dispatch(PreCheckAgent.CheckedAsOperational)
-        )
-        self.assertEqual(
-            agent.touch_to_preoperational,
-            message_handler.dispatch(PreCheckAgent.CheckedAsPreOperational)
-        )
-        self.assertEqual(
-            agent.touch_to_provisioning,
-            message_handler.dispatch(PreCheckAgent.CheckedAsProvisioning)
+            agent.touch_with_token,
+            message_handler.dispatch(SessionAgent.TokenReceived)
         )
 
-    def test_job_query_and_transmit(self):
+    def test_job_creation(self):
+        session = Registry().connect(sqlite3, ":memory:").session
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "test.fifo")
+            q = SessionAgent.queue(None, None, path=path)
+            agent = SessionAgent(q, args=None, config=None)
+            jobs = agent.jobs(session)
+            self.assertIsInstance(jobs, tuple)
+            self.assertFalse(jobs)
+
+    def test_queue_creation_from_path(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "test.fifo")
+            q = SessionAgent.queue(None, None, path=path)
+            self.assertIsInstance(q, PipeQueue)
+            self.assertTrue(os.path.exists(q.path))
+            q.close()
+        self.assertFalse(os.path.exists(q.path))
+
+    def test_queue_creation_bad_config(self):
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "test.fifo")
+            config = {"pipe.tokens": {}}
+            q = SessionAgent.queue(None, config, path=path)
+            self.assertIsInstance(q, PipeQueue)
+            self.assertTrue(os.path.exists(q.path))
+            q.close()
+        self.assertFalse(os.path.exists(q.path))
+
+    def test_queue_creation_from_config(self):
+        config = {"pipe.tokens": {"vcloud": "~/.vcloud.fifo"}}
+        q = SessionAgent.queue(None, config)
+        self.assertIsInstance(q, PipeQueue)
+        self.assertFalse("~" in q.path)
+        self.assertTrue(q.path.endswith(".vcloud.fifo"))
+        self.assertTrue(os.path.exists(q.path))
+        q.close()
+        os.remove(q.path)
+
+    def tost_job_query_and_transmit(self):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
@@ -157,13 +175,7 @@ class SessionAgentTesting(AgentTesting):
         job = q.get_nowait()
         self.assertEqual(5, len(job.artifact.changes))
 
-    def test_queue_creation(self):
-        self.assertIsInstance(
-            PreCheckAgent.queue(None, None, loop=None),
-            asyncio.Queue
-        )
-
-    def test_operational_msg_dispatch_and_touch(self):
+    def tost_operational_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
         user = User(handle="Anon", uuid=uuid.uuid4().hex)
         org = session.query(Organisation).one()
@@ -199,7 +211,7 @@ class SessionAgentTesting(AgentTesting):
         self.assertEqual(report.power, "on")
         self.assertEqual("operational", app.changes[-1].state.name)
 
-    def test_preoperational_msg_dispatch_and_touch(self):
+    def tost_preoperational_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
         user = User(handle="Anon", uuid=uuid.uuid4().hex)
         org = session.query(Organisation).one()
