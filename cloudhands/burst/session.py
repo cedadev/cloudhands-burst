@@ -8,6 +8,11 @@ import os
 from cloudhands.burst.agent import Agent
 from cloudhands.burst.agent import Job
 
+from cloudhands.common.schema import Component
+from cloudhands.common.schema import Provider
+from cloudhands.common.schema import ProviderToken
+from cloudhands.common.schema import Registration
+from cloudhands.common.schema import Touch
 from cloudhands.common.pipes import PipeQueue
 
 
@@ -31,18 +36,18 @@ class SessionAgent(Agent):
         return tuple()
 
     def touch_with_token(self, msg:Message, session):
-        provisioning = session.query(ApplianceState).filter(
-            ApplianceState.name == "provisioning").one()
-        app = session.query(Appliance).filter(
-            Appliance.uuid == msg.uuid).first()
+        reg = session.query(Registration).filter(
+            Registration.uuid == msg.uuid).first()
         actor = session.query(Component).filter(
             Component.handle=="burst.controller").one()
         provider = session.query(Provider).filter(
             Provider.name==msg.provider).one()
-        act = Touch(artifact=app, actor=actor, state=provisioning, at=msg.ts)
-        resource = Node(
-            name="", touch=act, provider=provider,
-            uri=msg.uri)
+        state = reg.changes[-1].state
+        act = Touch(artifact=reg, actor=actor, state=state, at=msg.ts)
+        resource = ProviderToken(
+            touch=act, provider=provider,
+            key=msg.key, value=msg.value)
+
         session.add(resource)
         session.commit()
         return act

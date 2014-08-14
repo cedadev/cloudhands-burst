@@ -10,11 +10,13 @@ import unittest
 import uuid
 
 from cloudhands.burst.agent import message_handler
-from cloudhands.burst.test.test_appliance import AgentTesting
 from cloudhands.burst.session import SessionAgent
+from cloudhands.burst.test.test_appliance import AgentTesting
 
 import cloudhands.common
+from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
+from cloudhands.common.fsm import RegistrationState
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderToken
 from cloudhands.common.schema import Registration
@@ -76,111 +78,43 @@ class SessionAgentTesting(AgentTesting):
         q.close()
         os.remove(q.path)
 
-    def tost_job_query_and_transmit(self):
+    def test_handler_operation(self):
         session = Registry().connect(sqlite3, ":memory:").session
+        initialise(session)
 
-        # 0. Set up User
         user = User(handle="Anon", uuid=uuid.uuid4().hex)
-        org = session.query(Organisation).one()
-
-        # 1. User creates new appliances
+        valid = session.query(
+            RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+        reg = Registration(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__)
         now = datetime.datetime.utcnow()
-        then = now - datetime.timedelta(seconds=45)
-        requested = session.query(ApplianceState).filter(
-            ApplianceState.name == "requested").one()
-        apps = (
-            Appliance(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__,
-                organisation=org),
-            Appliance(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__,
-                organisation=org),
-            )
-        acts = (
-            Touch(artifact=apps[0], actor=user, state=requested, at=then),
-            Touch(artifact=apps[1], actor=user, state=requested, at=now)
-        )
+        act = Touch(artifact=reg, actor=user, state=valid, at=now)
 
-        tmplt = session.query(CatalogueItem).first()
-        choices = (
-            CatalogueChoice(
-                provider=None, touch=acts[0], natrouted=True,
-                **{k: getattr(tmplt, k, None)
-                for k in ("name", "description", "logo")}),
-            CatalogueChoice(
-                provider=None, touch=acts[1], natrouted=True,
-                **{k: getattr(tmplt, k, None)
-                for k in ("name", "description", "logo")})
-        )
-        session.add_all(choices)
-        session.commit()
-
-        now = datetime.datetime.utcnow()
-        then = now - datetime.timedelta(seconds=45)
-        configuring = session.query(ApplianceState).filter(
-            ApplianceState.name == "configuring").one()
-        acts = (
-            Touch(artifact=apps[0], actor=user, state=configuring, at=then),
-            Touch(artifact=apps[1], actor=user, state=configuring, at=now)
-        )
-        session.add_all(acts)
-        session.commit()
-
-        self.assertEqual(
-            2, session.query(Touch).join(Appliance).filter(
-            Appliance.id == apps[1].id).count())
-
-        # 2. One Appliance is configured interactively by user
-        latest = apps[1].changes[-1]
-        now = datetime.datetime.utcnow()
-        act = Touch(
-            artifact=apps[1], actor=user, state=latest.state, at=now)
-        label = Label(
-            name="test_server01",
-            description="This is just for kicking tyres",
-            touch=act)
-        session.add(label)
-        session.commit()
-
-        self.assertEqual(
-            3, session.query(Touch).join(Appliance).filter(
-            Appliance.id == apps[1].id).count())
-
-        # 3. Skip to provisioning
-        now = datetime.datetime.utcnow()
-        preprovision = session.query(ApplianceState).filter(
-            ApplianceState.name == "provisioning").one()
-        session.add(
-            Touch(
-                artifact=apps[1],
-                actor=user,
-                state=preprovision, at=now))
-
-        # 4. Schedule for check
-        now = datetime.datetime.utcnow()
-        precheck = session.query(ApplianceState).filter(
-            ApplianceState.name == "pre_check").one()
-        session.add(
-            Touch(
-                artifact=apps[1],
-                actor=user,
-                state=precheck, at=now))
-
+        provider = session.query(Provider).one()
         session.add(act)
         session.commit()
 
-        q = PreCheckAgent.queue(None, None, loop=None)
-        agent = PreCheckAgent(q, args=None, config=None)
-        jobs = agent.jobs(session)
-        self.assertEqual(1, len(jobs))
+        self.assertEqual(0, session.query(ProviderToken).count())
 
-        q.put_nowait(jobs[0])
-        self.assertEqual(1, q.qsize())
+        with tempfile.TemporaryDirectory() as td:
+            path = os.path.join(td, "test.fifo")
+            q = SessionAgent.queue(None, None, path=path)
+            agent = SessionAgent(q, args=None, config=None)
+            for typ, handler in agent.callbacks:
+                message_handler.register(typ, handler)
 
-        job = q.get_nowait()
-        self.assertEqual(5, len(job.artifact.changes))
+            msg = SessionAgent.Message(
+                reg.uuid, datetime.datetime.utcnow(),
+                "cloudhands.jasmin.vcloud.phase04.cfg",
+                "x-vcloud-authorization",
+                "haj10ZIe55NvwxuN34bf+lOGxLNhuN1P+cBLkfQ7vYU=")
+            rv = message_handler(msg, session)
+
+            self.assertIsInstance(rv, Touch)
+            self.assertEqual(1, session.query(ProviderToken).count())
+            q.close()
 
     def tost_operational_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
@@ -198,25 +132,6 @@ class SessionAgentTesting(AgentTesting):
         act = Touch(artifact=app, actor=user, state=requested, at=now)
         session.add(act)
         session.commit()
-
-        self.assertEqual(0, session.query(ProviderReport).count())
-        q = PreCheckAgent.queue(None, None, loop=None)
-        agent = PreCheckAgent(q, args=None, config=None)
-        for typ, handler in agent.callbacks:
-            message_handler.register(typ, handler)
-
-        msg = PreCheckAgent.CheckedAsOperational(
-            app.uuid, datetime.datetime.utcnow(),
-            "cloudhands.jasmin.vcloud.phase04.cfg",
-            "192.168.2.1", "deployed", "on", None)
-        rv = message_handler(msg, session)
-        self.assertIsInstance(rv, Touch)
-
-        self.assertEqual(1, session.query(ProviderReport).count())
-        report = session.query(ProviderReport).one()
-        self.assertEqual(report.creation, "deployed")
-        self.assertEqual(report.power, "on")
-        self.assertEqual("operational", app.changes[-1].state.name)
 
     def tost_preoperational_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
