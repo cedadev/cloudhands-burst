@@ -20,6 +20,7 @@ from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import PreStartAgent
 from cloudhands.burst.appliance import PreStopAgent
 from cloudhands.burst.appliance import ProvisioningAgent
+from cloudhands.burst.session import SessionAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
@@ -78,6 +79,8 @@ def main(args):
         PreStartAgent,
         PreStopAgent,
         ProvisioningAgent,
+        SessionAgent,
+        # TODO: SubscriptionAgent
     ):
         workQ = agentType.queue(args, config, loop=loop)
         agent = agentType(workQ, args, config)
@@ -90,7 +93,18 @@ def main(args):
     except KeyboardInterrupt:
         # TODO: Task audit
         pass
+    except Exception as e:
+        log.error(e) 
     finally:
+
+        for agent in workers:
+            try:
+                agent.work.close()
+            except AttributeError:
+                continue
+            except Exception as e:
+                log.error(e)
+
         loop.close()
 
     return 0

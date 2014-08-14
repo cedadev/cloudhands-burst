@@ -229,6 +229,7 @@ class PreCheckAgent(Agent):
         ]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_check"]
 
@@ -387,6 +388,7 @@ class PreDeleteAgent(Agent):
         return [(PreDeleteAgent.Message, self.touch_to_deleted)]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_delete"]
 
@@ -476,6 +478,7 @@ class PreOperationalAgent(Agent):
         ]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_operational"]
 
@@ -728,6 +731,7 @@ class PreProvisionAgent(Agent):
         return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_provision"]
 
@@ -935,6 +939,7 @@ class ProvisioningAgent(Agent):
         ]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         now = datetime.datetime.utcnow()
         then = now - datetime.timedelta(seconds=20)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
@@ -1048,6 +1053,7 @@ class PreStartAgent(Agent):
         return [(PreStartAgent.Message, self.touch_to_running)]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_start"]
 
@@ -1142,6 +1148,7 @@ class PreStopAgent(Agent):
         return [(PreStopAgent.Message, self.touch_to_stopped)]
 
     def jobs(self, session):
+        # TODO: get token (need user registration ProviderToken)
         return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
                 if i.changes[-1].state.name == "pre_stop"]
 

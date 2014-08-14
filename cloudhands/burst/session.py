@@ -3,10 +3,14 @@
 
 import asyncio
 from collections import namedtuple
+import logging
 import os
+
+import aiohttp
 
 from cloudhands.burst.agent import Agent
 from cloudhands.burst.agent import Job
+from cloudhands.burst.appliance import Strategy
 
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Provider
@@ -51,3 +55,50 @@ class SessionAgent(Agent):
         session.add(resource)
         session.commit()
         return act
+
+    @asyncio.coroutine
+    def __call__(self, loop, msgQ, *args):
+        log = logging.getLogger("cloudhands.burst.session.token")
+        log.info("Activated.")
+        while True:
+            data = yield from self.work.get()
+            try:
+                reg_uuid, provider_name, user_name, user_pass = data
+            except ValueError as e:
+                log.error(e)
+                continue
+
+            config = Strategy.config(provider_name)
+
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/sessions")
+
+            headers = {
+                "Accept": "application/*+xml;version=5.5",
+            }
+
+            client = aiohttp.client.HttpClient(
+                ["{host}:{port}".format(
+                    host=config["host"]["name"],
+                    port=config["host"]["port"])
+                ],
+                verify_ssl=config["host"].getboolean("verify_ssl_cert")
+            )
+
+            response = yield from client.request(
+                "POST", url,
+                auth=(user_name, user_pass),
+                headers=headers)
+            key = "x-vcloud-authorization"
+            value = response.headers.get(key)
+
+            msg = SessionAgent.Message(
+                reg_uuid, datetime.datetime.utcnow(),
+                provider_name, key, value
+            )
+            yield from msgQ.put(msg)
+
+
