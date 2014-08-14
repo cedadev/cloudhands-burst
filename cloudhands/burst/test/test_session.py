@@ -15,6 +15,12 @@ from cloudhands.burst.session import SessionAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import Registry
+from cloudhands.common.schema import Provider
+from cloudhands.common.schema import ProviderToken
+from cloudhands.common.schema import Registration
+from cloudhands.common.schema import State
+from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
 from cloudhands.common.pipes import PipeQueue
 
 
@@ -27,7 +33,7 @@ class SessionAgentTesting(AgentTesting):
             message_handler.register(typ, handler)
         self.assertEqual(
             agent.touch_with_token,
-            message_handler.dispatch(SessionAgent.TokenReceived)
+            message_handler.dispatch(SessionAgent.Message)
         )
 
     def test_job_creation(self):
@@ -39,6 +45,7 @@ class SessionAgentTesting(AgentTesting):
             jobs = agent.jobs(session)
             self.assertIsInstance(jobs, tuple)
             self.assertFalse(jobs)
+            q.close()
 
     def test_queue_creation_from_path(self):
         with tempfile.TemporaryDirectory() as td:
