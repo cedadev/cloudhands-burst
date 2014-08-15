@@ -3,6 +3,7 @@
 
 import asyncio
 from collections import namedtuple
+import datetime
 import logging
 import os
 
@@ -68,37 +69,43 @@ class SessionAgent(Agent):
                 log.error(e)
                 continue
 
-            config = Strategy.config(provider_name)
+            try:
+                config = Strategy.config(provider_name)
 
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
-            headers = {
-                "Accept": "application/*+xml;version=5.5",
-            }
-
-            client = aiohttp.client.HttpClient(
-                ["{host}:{port}".format(
+                url = "{scheme}://{host}:{port}/{endpoint}".format(
+                    scheme="https",
                     host=config["host"]["name"],
-                    port=config["host"]["port"])
-                ],
-                verify_ssl=config["host"].getboolean("verify_ssl_cert")
-            )
+                    port=config["host"]["port"],
+                    endpoint="api/sessions")
 
-            response = yield from client.request(
-                "POST", url,
-                auth=(user_name, user_pass),
-                headers=headers)
-            key = "x-vcloud-authorization"
-            value = response.headers.get(key)
+                headers = {
+                    "Accept": "application/*+xml;version=5.5",
+                }
 
-            msg = SessionAgent.Message(
-                reg_uuid, datetime.datetime.utcnow(),
-                provider_name, key, value
-            )
-            yield from msgQ.put(msg)
+                client = aiohttp.client.HttpClient(
+                    ["{host}:{port}".format(
+                        host=config["host"]["name"],
+                        port=config["host"]["port"])
+                    ],
+                    verify_ssl=config["host"].getboolean("verify_ssl_cert")
+                )
 
+                response = yield from client.request(
+                    "POST", url,
+                    auth=(user_name, user_pass),
+                    headers=headers)
+                key = "x-vcloud-authorization"
+                value = response.headers.get(key)
 
+                if not value:
+                    log.warning("{} sent status {} on auth of {}".format(
+                        provider_name, response.status, reg_uuid))
+                else:
+                    msg = SessionAgent.Message(
+                        reg_uuid, datetime.datetime.utcnow(),
+                        provider_name, key, value
+                    )
+                    yield from msgQ.put(msg)
+
+            except Exception as e:
+                log.error(e)
