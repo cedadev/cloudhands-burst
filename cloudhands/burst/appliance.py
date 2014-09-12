@@ -25,7 +25,6 @@ from cloudhands.burst.control import destroy_node
 from cloudhands.burst.utils import find_xpath
 from cloudhands.burst.utils import unescape_script
 from cloudhands.common.discovery import providers
-from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import Component
@@ -37,6 +36,7 @@ from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
 from cloudhands.common.schema import Touch
+from cloudhands.common.states import ApplianceState
 
 __doc__ = """
 

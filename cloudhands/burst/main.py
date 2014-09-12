@@ -25,7 +25,7 @@ from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
-from cloudhands.common.fsm import ApplianceState
+from cloudhands.common.states import ApplianceState
 
 __doc__ = """
 This process performs tasks to administer hosts in the JASMIN cloud.

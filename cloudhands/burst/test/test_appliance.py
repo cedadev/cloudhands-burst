@@ -18,7 +18,6 @@ from cloudhands.burst.appliance import PreStopAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import Registry
-from cloudhands.common.fsm import ApplianceState
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import CatalogueItem
@@ -34,6 +33,7 @@ from cloudhands.common.schema import SoftwareDefinedNetwork
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
+from cloudhands.common.states import ApplianceState
 
 
 class AgentTesting(unittest.TestCase):

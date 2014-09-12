@@ -13,14 +13,14 @@ import cloudhands.common
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 
-from cloudhands.common.fsm import SubscriptionState
-
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
+
+from cloudhands.common.states import SubscriptionState
 
 
 class SubscriptionLifecycleTests(unittest.TestCase):

@@ -9,12 +9,12 @@ import logging
 from cloudhands.burst.control import create_node
 from cloudhands.burst.control import destroy_node
 from cloudhands.common.discovery import providers
-from cloudhands.common.fsm import HostState
 from cloudhands.common.schema import Host
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import Touch
+from cloudhands.common.states import HostState
 
 
 def hosts(session, state=None):

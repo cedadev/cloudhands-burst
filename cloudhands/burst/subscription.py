@@ -7,12 +7,12 @@ import datetime
 import logging
 
 from cloudhands.burst.control import list_images
-from cloudhands.common.fsm import SubscriptionState
 from cloudhands.common.schema import Subscription
 
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import OSImage
+from cloudhands.common.states import SubscriptionState
 
 class Catalogue:
     """
