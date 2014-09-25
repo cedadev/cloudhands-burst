@@ -20,12 +20,12 @@ from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import PreStartAgent
 from cloudhands.burst.appliance import PreStopAgent
 from cloudhands.burst.appliance import ProvisioningAgent
+from cloudhands.burst.registration import ValidAgent
 from cloudhands.burst.session import SessionAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
 from cloudhands.common.connectors import Registry
 from cloudhands.common.discovery import settings
-from cloudhands.common.states import ApplianceState
 
 __doc__ = """
 This process performs tasks to administer hosts in the JASMIN cloud.
@@ -80,6 +80,7 @@ def main(args):
         PreStopAgent,
         ProvisioningAgent,
         SessionAgent,
+        ValidAgent,
         # TODO: SubscriptionAgent
     ):
         workQ = agentType.queue(args, config, loop=loop)

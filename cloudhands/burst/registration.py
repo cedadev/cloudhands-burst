@@ -13,12 +13,13 @@ from cloudhands.burst.agent import Agent
 from cloudhands.burst.agent import Job
 from cloudhands.burst.appliance import Strategy
 
+from cloudhands.common.discovery import providers
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderToken
 from cloudhands.common.schema import Registration
 from cloudhands.common.schema import Touch
-from cloudhands.common.pipes import PipeQueue
+from cloudhands.common.states import RegistrationState
 
 
 class ValidAgent(Agent):
@@ -44,31 +45,23 @@ class ValidAgent(Agent):
         actor = session.query(Component).filter(
             Component.handle=="burst.controller").one()
         provider = session.query(Provider).filter(
-            Provider.name==msg.provider).one()
-        state = reg.changes[-1].state
-        act = Touch(artifact=reg, actor=actor, state=state, at=msg.ts)
-        resource = ProviderToken(
-            touch=act, provider=provider,
-            key=msg.key, value=msg.value)
-
-        session.add(resource)
+            Provider.name==msg.provider).one() # TODO: per-provider resource
+        active = session.query(RegistrationState).filter(
+            RegistrationState.name == "active").one()
+        act = Touch(artifact=reg, actor=actor, state=active, at=msg.ts)
+        session.add(act)
         session.commit()
         return act
 
     @asyncio.coroutine
     def __call__(self, loop, msgQ, *args):
-        log = logging.getLogger("cloudhands.burst.session.token")
+        log = logging.getLogger("cloudhands.burst.registration")
         log.info("Activated.")
         while True:
-            data = yield from self.work.get()
-            try:
-                reg_uuid, provider_name, user_name, user_pass = data
-            except ValueError as e:
-                log.error(e)
-                continue
+            job = yield from self.work.get()
 
             try:
-                config = Strategy.config(provider_name)
+                config = providers["vcloud"][-1]
 
                 url = "{scheme}://{host}:{port}/{endpoint}".format(
                     scheme="https",
@@ -88,20 +81,20 @@ class ValidAgent(Agent):
                     verify_ssl=config["host"].getboolean("verify_ssl_cert")
                 )
 
-                response = yield from client.request(
-                    "POST", url,
-                    auth=(user_name, user_pass),
-                    headers=headers)
-                key = "x-vcloud-authorization"
-                value = response.headers.get(key)
+                #response = yield from client.request(
+                #    "POST", url,
+                #    auth=(user_name, user_pass),
+                #    headers=headers)
+                #key = "x-vcloud-authorization"
+                #value = response.headers.get(key)
 
+                value = None
                 if not value:
-                    log.warning("{} sent status {} on auth of {}".format(
-                        provider_name, response.status, reg_uuid))
+                    log.info(job.artifact)
                 else:
                     msg = SessionAgent.Message(
                         reg_uuid, datetime.datetime.utcnow(),
-                        provider_name, key, value
+                        provider_name,
                     )
                     yield from msgQ.put(msg)
 
