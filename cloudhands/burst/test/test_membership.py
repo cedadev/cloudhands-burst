@@ -8,7 +8,7 @@ import unittest
 import uuid
 
 from cloudhands.burst.agent import message_handler
-from cloudhands.burst.registration import ValidAgent
+from cloudhands.burst.membership import AcceptedAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import initialise
@@ -19,17 +19,17 @@ from cloudhands.common.schema import CatalogueItem
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import IPAddress
 from cloudhands.common.schema import Label
+from cloudhands.common.schema import Membership
 from cloudhands.common.schema import NATRouting
 from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
-from cloudhands.common.schema import Registration
 from cloudhands.common.schema import SoftwareDefinedNetwork
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
-from cloudhands.common.states import RegistrationState
+from cloudhands.common.states import MembershipState
 
 
 class AgentTesting(unittest.TestCase):
@@ -45,22 +45,30 @@ class AgentTesting(unittest.TestCase):
             Provider(
                 uuid=uuid.uuid4().hex,
                 name="cloudhands.jasmin.vcloud.phase04.cfg"),
-            Registration(
-                uuid=uuid.uuid4().hex,
-                model=cloudhands.common.__version__),
             User(handle="testuser", uuid=uuid.uuid4().hex),
         ))
         self.session.commit()
 
-        self.reg, user = (
-            self.session.query(Registration).one(),
+        org, user = (
+            self.session.query(Organisation).one(),
             self.session.query(User).one(),
         )
-        valid = self.session.query(
-            RegistrationState).filter(
-            RegistrationState.name == "valid").one()
+        self.session.add(
+            Membership(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org,
+                role="user")
+        )
+        self.session.commit()
+
+        self.mship = self.session.query(Membership).one()
+        
+        accepted = self.session.query(
+            MembershipState).filter(
+            MembershipState.name == "accepted").one()
         now = datetime.datetime.utcnow()
-        act = Touch(artifact=self.reg, actor=user, state=valid, at=now)
+        act = Touch(artifact=self.mship, actor=user, state=accepted, at=now)
         self.session.add(act)
         self.session.commit()
 
@@ -70,21 +78,21 @@ class AgentTesting(unittest.TestCase):
         r.disconnect(sqlite3, ":memory:")
 
 
-class ValidAgentTesting(AgentTesting):
+class AcceptedAgentTesting(AgentTesting):
 
     def test_handler_registration(self):
         q = asyncio.Queue()
-        agent = ValidAgent(q, args=None, config=None)
+        agent = AcceptedAgent(q, args=None, config=None)
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
         self.assertEqual(
             agent.touch_to_active,
-            message_handler.dispatch(ValidAgent.Message)
+            message_handler.dispatch(AcceptedAgent.Message)
         )
 
     def test_job_query_and_transmit(self):
-        q = ValidAgent.queue(None, None, loop=None)
-        agent = ValidAgent(q, args=None, config=None)
+        q = AcceptedAgent.queue(None, None, loop=None)
+        agent = AcceptedAgent(q, args=None, config=None)
         jobs = agent.jobs(self.session)
         self.assertEqual(1, len(jobs))
 
@@ -96,21 +104,21 @@ class ValidAgentTesting(AgentTesting):
 
     def test_queue_creation(self):
         self.assertIsInstance(
-            ValidAgent.queue(None, None, loop=None),
+            AcceptedAgent.queue(None, None, loop=None),
             asyncio.Queue
         )
 
     def test_msg_dispatch_and_touch(self):
-        reg = self.session.query(Registration).one()
-        active = self.session.query(RegistrationState).filter(
-            RegistrationState.name == "active").one()
+        reg = self.session.query(Membership).one()
+        active = self.session.query(MembershipState).filter(
+            MembershipState.name == "active").one()
 
-        q = ValidAgent.queue(None, None, loop=None)
-        agent = ValidAgent(q, args=None, config=None)
+        q = AcceptedAgent.queue(None, None, loop=None)
+        agent = AcceptedAgent(q, args=None, config=None)
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
 
-        msg = ValidAgent.Message(
+        msg = AcceptedAgent.Message(
             reg.uuid, datetime.datetime.utcnow(),
             "cloudhands.jasmin.vcloud.phase04.cfg")
         rv = message_handler(msg, self.session)

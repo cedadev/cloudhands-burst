@@ -20,7 +20,7 @@ from cloudhands.burst.appliance import PreProvisionAgent
 from cloudhands.burst.appliance import PreStartAgent
 from cloudhands.burst.appliance import PreStopAgent
 from cloudhands.burst.appliance import ProvisioningAgent
-from cloudhands.burst.registration import ValidAgent
+from cloudhands.burst.membership import AcceptedAgent
 from cloudhands.burst.session import SessionAgent
 from cloudhands.burst.subscription import SubscriptionAgent
 from cloudhands.common.connectors import initialise
@@ -72,6 +72,7 @@ def main(args):
 
     workers = []
     for agentType in (
+        AcceptedAgent,
         PreCheckAgent,
         PreDeleteAgent,
         PreOperationalAgent,
@@ -80,7 +81,6 @@ def main(args):
         PreStopAgent,
         ProvisioningAgent,
         SessionAgent,
-        ValidAgent,
         # TODO: SubscriptionAgent
     ):
         workQ = agentType.queue(args, config, loop=loop)
