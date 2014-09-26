@@ -12,7 +12,7 @@ import aiohttp
 
 from cloudhands.burst.agent import Agent
 from cloudhands.burst.agent import Job
-from cloudhands.burst.appliance import find_orgs
+from cloudhands.burst.utils import find_xpath
 
 from cloudhands.common.discovery import providers
 from cloudhands.common.schema import Component
@@ -22,6 +22,12 @@ from cloudhands.common.schema import ProviderToken
 from cloudhands.common.schema import Touch
 from cloudhands.common.states import MembershipState
 
+
+def find_admin_org(tree, **kwargs): 
+    elems = find_xpath(
+        ".//*[@type='application/vnd.vmware.admin.organization+xml']",
+        tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"}, **kwargs)
+    return (i for i in elems if i.tag.endswith("OrganizationReference"))
 
 class AcceptedAgent(Agent):
 
@@ -98,14 +104,14 @@ class AcceptedAgent(Agent):
                         scheme="https",
                         host=config["host"]["name"],
                         port=config["host"]["port"],
-                        endpoint="api/org")
+                        endpoint="api/admin")
                     response = yield from client.request(
                         "GET", url,
                         headers=headers)
 
                     orgList = yield from response.read_and_close()
                     tree = ET.fromstring(orgList.decode("utf-8"))
-                    orgFound = find_orgs(tree, name=config["vdc"]["org"])
+                    orgFound = find_admin_org(tree, name=config["vdc"]["org"])
 
                     try:
                         org = next(orgFound)
