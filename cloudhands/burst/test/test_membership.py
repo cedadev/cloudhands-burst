@@ -109,7 +109,7 @@ class AcceptedAgentTesting(AgentTesting):
         )
 
     def test_msg_dispatch_and_touch(self):
-        reg = self.session.query(Membership).one()
+        mship = self.session.query(Membership).one()
         active = self.session.query(MembershipState).filter(
             MembershipState.name == "active").one()
 
@@ -119,7 +119,7 @@ class AcceptedAgentTesting(AgentTesting):
             message_handler.register(typ, handler)
 
         msg = AcceptedAgent.Message(
-            reg.uuid, datetime.datetime.utcnow(),
+            mship.uuid, datetime.datetime.utcnow(),
             "cloudhands.jasmin.vcloud.phase04.cfg")
         rv = message_handler(msg, self.session)
         self.assertIsInstance(rv, Touch)

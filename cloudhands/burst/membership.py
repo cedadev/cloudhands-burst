@@ -4,8 +4,10 @@
 import asyncio
 from collections import namedtuple
 import datetime
+import functools
 import logging
 import os
+import textwrap
 import xml.etree.ElementTree as ET
 
 import aiohttp
@@ -17,11 +19,13 @@ from cloudhands.burst.utils import find_xpath
 from cloudhands.common.discovery import providers
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Membership
-from cloudhands.common.schema import Provider
-from cloudhands.common.schema import ProviderToken
 from cloudhands.common.schema import Touch
 from cloudhands.common.states import MembershipState
 
+
+find_add_user_link = functools.partial(
+    find_xpath, "./*/[@type='application/vnd.vmware.admin.user+xml']",
+    rel="add")
 
 def find_admin_org(tree, **kwargs): 
     elems = find_xpath(
@@ -29,10 +33,16 @@ def find_admin_org(tree, **kwargs):
         tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"}, **kwargs)
     return (i for i in elems if i.tag.endswith("OrganizationReference"))
 
+def find_user_role(tree, **kwargs):
+    elems = find_xpath(
+        ".//*[@type='application/vnd.vmware.admin.role+xml']",
+        tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"}, **kwargs)
+    return (i for i in elems if i.tag.endswith("RoleReference"))
+
 class AcceptedAgent(Agent):
 
     Message = namedtuple(
-        "MembershipActivated", ["uuid", "ts", "handle"])
+        "MembershipActivated", ["uuid", "ts", "provider"])
 
     @staticmethod
     def queue(args, config, loop=None):
@@ -61,7 +71,7 @@ class AcceptedAgent(Agent):
 
     @asyncio.coroutine
     def __call__(self, loop, msgQ, *args):
-        log = logging.getLogger("cloudhands.burst.registration")
+        log = logging.getLogger("cloudhands.burst.membership")
         configs = {cfg["metadata"]["path"]: cfg
                   for p in providers.values() for cfg in p}
         log.info("Activated.")
@@ -69,11 +79,18 @@ class AcceptedAgent(Agent):
             job = yield from self.work.get()
 
             try:
-                prvdrs = [sub.provider.name
-                          for sub in job.artifact.organisation.subscriptions]
-                for p in prvdrs:
-                    config = configs[p]
-                    log.debug(config)
+                try:
+                    prvdrs = [sub.provider.name
+                              for sub in job.artifact.organisation.subscriptions]
+                    username = job.artifact.changes[1].actor.handle
+                except (AttributeError, IndexError) as e:
+                    log.error(e)
+                    continue
+                else:
+                    log.debug(username)
+
+                for provider in prvdrs:
+                    config = configs[provider]
 
                     url = "{scheme}://{host}:{port}/{endpoint}".format(
                         scheme="https",
@@ -111,23 +128,62 @@ class AcceptedAgent(Agent):
 
                     orgList = yield from response.read_and_close()
                     tree = ET.fromstring(orgList.decode("utf-8"))
-                    orgFound = find_admin_org(tree, name=config["vdc"]["org"])
 
+                    try:
+                        role = next(find_user_role(tree, name="vApp User"))
+                    except StopIteration:
+                        log.error("Failed to find user role reference")
+                        continue
+
+                    orgFound = find_admin_org(tree, name=config["vdc"]["org"])
                     try:
                         org = next(orgFound)
                     except StopIteration:
                         log.error("Failed to find org")
                         continue
-                    else:
-                        log.debug(org)
 
-                    value = None
-                    if not value:
-                        log.info(job.artifact)
+                    response = yield from client.request(
+                        "GET", org.attrib.get("href"),
+                        headers=headers)
+                    orgData = yield from response.read_and_close()
+                    tree = ET.fromstring(orgData.decode("utf-8"))
+
+
+                    try:
+                        addUser = next(find_add_user_link(tree))
+                    except StopIteration:
+                        log.error("Failed to find user endpoint")
+                        continue
+
+                    user = textwrap.dedent("""
+                        <User
+                           xmlns="http://www.vmware.com/vcloud/v1.5"
+                           name="{}"
+                           type="application/vnd.vmware.admin.user+xml">
+                           <IsEnabled>true</IsEnabled>
+                           <IsExternal>true</IsExternal>
+                           <Role
+                            type="application/vnd.vmware.admin.role+xml"
+                            href="{}" />
+                        </User>""").format(username, role.attrib.get("href"))
+
+                    headers["Content-Type"] = (
+                        "application/vnd.vmware.admin.user+xml")
+
+                    response = yield from client.request(
+                        "POST", addUser.attrib.get("href"),
+                        headers=headers,
+                        data=user.encode("utf-8"))
+                    reply = yield from response.read_and_close()
+
+                    tree = ET.fromstring(reply.decode("utf-8"))
+                    if not tree.tag.endswith("User"):
+                        log.warning(
+                            "Error while adding user {}".format(username))
                     else:
-                        msg = SessionAgent.Message(
-                            reg_uuid, datetime.datetime.utcnow(),
-                            provider_name,
+                        msg = AcceptedAgent.Message(
+                            job.uuid, datetime.datetime.utcnow(),
+                            provider,
                         )
                         yield from msgQ.put(msg)
 
