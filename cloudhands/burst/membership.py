@@ -8,7 +8,9 @@ import functools
 import logging
 import os
 import textwrap
+import traceback
 import xml.etree.ElementTree as ET
+import sys
 
 import aiohttp
 
@@ -188,4 +190,7 @@ class AcceptedAgent(Agent):
                         yield from msgQ.put(msg)
 
             except Exception as e:
+                exc_type, exc_value, exc_tb = sys.exc_info()
+                log.error(traceback.format_exception(
+                    exc_type, exc_value, exc_tb))
                 log.error(e)

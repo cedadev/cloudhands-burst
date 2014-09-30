@@ -90,9 +90,11 @@ class SessionAgent(Agent):
                     verify_ssl=config["host"].getboolean("verify_ssl_cert")
                 )
 
+                user_ref = "{}@{}".format(user_name, config["vdc"]["org"])
+                auth=(user_ref, user_pass)
                 response = yield from client.request(
                     "POST", url,
-                    auth=(user_name, user_pass),
+                    auth=auth,
                     headers=headers)
                 key = "x-vcloud-authorization"
                 value = response.headers.get(key)
