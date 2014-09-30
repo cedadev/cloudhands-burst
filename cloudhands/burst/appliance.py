@@ -833,7 +833,7 @@ class PreProvisionAgent(Agent):
 
             try:
                 catalogue = next(
-                    find_catalogues(tree, name="Public catalog"))
+                    find_catalogues(tree, name="UN-managed Public Catalog"))
             except StopIteration:
                 log.error("Failed to find catalogue")
 
@@ -841,17 +841,19 @@ class PreProvisionAgent(Agent):
                 "GET", catalogue.attrib.get("href"),
                 headers=headers)
             catalogueData = yield from response.read_and_close()
+            log.debug(catalogueData)
             tree = ET.fromstring(catalogueData.decode("utf-8"))
             try:
                 # FIXME:
                 catalogueItem = next(
-                    find_catalogueitems(tree, name="centos6-stemcell"))
+                    find_catalogueitems(tree, name="CentOS-6.5-x86_64-110814"))
             except StopIteration:
                 log.error("Failed to find catalogue item")
             response = yield from client.request(
                 "GET", catalogueItem.attrib.get("href"),
                 headers=headers)
             catalogueItemData = yield from response.read_and_close()
+            log.debug(catalogueItemData)
             tree = ET.fromstring(catalogueItemData.decode("utf-8"))
 
             # FIXME: a fudge for the demo
