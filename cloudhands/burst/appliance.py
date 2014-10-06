@@ -47,7 +47,7 @@ __doc__ = """
     center = true;
     compound = true;
     nodesep = 0.6;
-    edge [decorate,labeldistance=3,labelfontname=helvetica,
+    edge [decorate=true,labeldistance=3,labelfontname=helvetica,
         labelfontsize=10,labelfloat=false];
 
     subgraph cluster_states {
