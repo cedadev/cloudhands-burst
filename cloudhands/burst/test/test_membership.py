@@ -109,7 +109,7 @@ class AcceptedAgentTesting(AgentTesting):
         user = self.session.query(User).one()
         valid = self.session.query(
             RegistrationState).filter(
-            RegistrationState.name=="valid").one()
+            RegistrationState.name=="pre_user_ldappublickey").one()
         now = datetime.datetime.utcnow()
         act = Touch(artifact=reg, actor=user, state=valid, at=now)
         self.session.add_all((reg, act))

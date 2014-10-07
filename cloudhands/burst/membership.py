@@ -64,14 +64,13 @@ class AcceptedAgent(Agent):
         ]
 
     def jobs(self, session):
-        # return Membership == accepted where Registration == valid
         return [
             Job(mship.uuid, None, mship)
             for mship in session.query(Membership).all()
             if mship.changes[-1].state.name == "accepted" and
             session.query(Registration).join(Touch).join(State).join(User).filter(
                 User.uuid == mship.changes[-1].actor.uuid).filter(
-                State.name == "valid").first()
+                State.name == "pre_user_ldappublickey").first()
         ]
 
     def touch_to_active(self, msg:MembershipActivated , session):
