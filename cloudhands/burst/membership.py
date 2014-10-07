@@ -201,14 +201,17 @@ class AcceptedAgent(Agent):
                     if not tree.tag.endswith("User"):
                         log.warning(
                             "Error while adding user {}".format(username))
-                        log.error(headers)
-                        log.error(reply)
-                    else:
-                        msg = AcceptedAgent.Message(
+                        msg = AcceptedAgent.MembershipNotActivated(
                             job.uuid, datetime.datetime.utcnow(),
                             provider,
                         )
-                        yield from msgQ.put(msg)
+                    else:
+                        msg = AcceptedAgent.MembershipActivated(
+                            job.uuid, datetime.datetime.utcnow(),
+                            provider,
+                        )
+
+                    yield from msgQ.put(msg)
 
             except Exception as e:
                 exc_type, exc_value, exc_tb = sys.exc_info()
