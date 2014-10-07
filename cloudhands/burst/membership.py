@@ -43,8 +43,11 @@ def find_user_role(tree, **kwargs):
 
 class AcceptedAgent(Agent):
 
-    Message = namedtuple(
+    MembershipActivated = namedtuple(
         "MembershipActivated", ["uuid", "ts", "provider"])
+
+    MembershipNotActivated = namedtuple(
+        "MembershipNotActivated", ["uuid", "ts", "provider"])
 
     @staticmethod
     def queue(args, config, loop=None):
@@ -52,13 +55,16 @@ class AcceptedAgent(Agent):
 
     @property
     def callbacks(self):
-        return [(AcceptedAgent.Message, self.touch_to_active)]
+        return [
+            (AcceptedAgent.MembershipActivated, self.touch_to_active),
+            (AcceptedAgent.MembershipNotActivated, self.touch_to_previous),
+        ]
 
     def jobs(self, session):
         return [Job(i.uuid, None, i) for i in session.query(Membership).all()
                 if i.changes[-1].state.name == "accepted"]
 
-    def touch_to_active(self, msg:Message, session):
+    def touch_to_active(self, msg:MembershipActivated , session):
         reg = session.query(Membership).filter(
             Membership.uuid == msg.uuid).first()
         actor = session.query(Component).filter(
@@ -70,6 +76,19 @@ class AcceptedAgent(Agent):
         session.add(act)
         session.commit()
         return act
+
+    def touch_to_previous(self, msg:MembershipNotActivated , session):
+        reg = session.query(Membership).filter(
+            Membership.uuid == msg.uuid).first()
+        actor = session.query(Component).filter(
+            Component.handle=="burst.controller").one()
+        # TODO: per-provider resource
+        state = reg.changes[-1].state
+        act = Touch(artifact=reg, actor=actor, state=state, at=msg.ts)
+        session.add(act)
+        session.commit()
+        return act
+
 
     @asyncio.coroutine
     def __call__(self, loop, msgQ, *args):
@@ -182,6 +201,8 @@ class AcceptedAgent(Agent):
                     if not tree.tag.endswith("User"):
                         log.warning(
                             "Error while adding user {}".format(username))
+                        log.error(headers)
+                        log.error(reply)
                     else:
                         msg = AcceptedAgent.Message(
                             job.uuid, datetime.datetime.utcnow(),

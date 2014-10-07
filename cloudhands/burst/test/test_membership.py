@@ -87,7 +87,11 @@ class AcceptedAgentTesting(AgentTesting):
             message_handler.register(typ, handler)
         self.assertEqual(
             agent.touch_to_active,
-            message_handler.dispatch(AcceptedAgent.Message)
+            message_handler.dispatch(AcceptedAgent.MembershipActivated)
+        )
+        self.assertEqual(
+            agent.touch_to_previous,
+            message_handler.dispatch(AcceptedAgent.MembershipNotActivated)
         )
 
     def test_job_query_and_transmit(self):
@@ -108,7 +112,7 @@ class AcceptedAgentTesting(AgentTesting):
             asyncio.Queue
         )
 
-    def test_msg_dispatch_and_touch(self):
+    def test_msg_dispatch_and_touch_to_active(self):
         mship = self.session.query(Membership).one()
         active = self.session.query(MembershipState).filter(
             MembershipState.name == "active").one()
@@ -118,9 +122,27 @@ class AcceptedAgentTesting(AgentTesting):
         for typ, handler in agent.callbacks:
             message_handler.register(typ, handler)
 
-        msg = AcceptedAgent.Message(
+        msg = AcceptedAgent.MembershipActivated(
             mship.uuid, datetime.datetime.utcnow(),
             "cloudhands.jasmin.vcloud.phase04.cfg")
         rv = message_handler(msg, self.session)
         self.assertIsInstance(rv, Touch)
         self.assertIs(rv.state, active)
+
+    def test_msg_dispatch_and_touch_to_previous(self):
+        mship = self.session.query(Membership).one()
+        accepted = self.session.query(
+            MembershipState).filter(
+            MembershipState.name == "accepted").one()
+
+        q = AcceptedAgent.queue(None, None, loop=None)
+        agent = AcceptedAgent(q, args=None, config=None)
+        for typ, handler in agent.callbacks:
+            message_handler.register(typ, handler)
+
+        msg = AcceptedAgent.MembershipNotActivated(
+            mship.uuid, datetime.datetime.utcnow(),
+            "cloudhands.jasmin.vcloud.phase04.cfg")
+        rv = message_handler(msg, self.session)
+        self.assertIsInstance(rv, Touch)
+        self.assertIs(rv.state, accepted)
