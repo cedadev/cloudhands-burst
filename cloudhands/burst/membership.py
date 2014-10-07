@@ -21,7 +21,10 @@ from cloudhands.burst.utils import find_xpath
 from cloudhands.common.discovery import providers
 from cloudhands.common.schema import Component
 from cloudhands.common.schema import Membership
+from cloudhands.common.schema import Registration
+from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
+from cloudhands.common.schema import User
 from cloudhands.common.states import MembershipState
 
 
@@ -61,8 +64,15 @@ class AcceptedAgent(Agent):
         ]
 
     def jobs(self, session):
-        return [Job(i.uuid, None, i) for i in session.query(Membership).all()
-                if i.changes[-1].state.name == "accepted"]
+        # return Membership == accepted where Registration == valid
+        return [
+            Job(mship.uuid, None, mship)
+            for mship in session.query(Membership).all()
+            if mship.changes[-1].state.name == "accepted" and
+            session.query(Registration).join(Touch).join(State).join(User).filter(
+                User.uuid == mship.changes[-1].actor.uuid).filter(
+                State.name == "valid").first()
+        ]
 
     def touch_to_active(self, msg:MembershipActivated , session):
         reg = session.query(Membership).filter(

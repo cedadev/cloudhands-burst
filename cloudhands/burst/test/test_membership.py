@@ -25,11 +25,13 @@ from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import SoftwareDefinedNetwork
 from cloudhands.common.schema import State
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 from cloudhands.common.states import MembershipState
+from cloudhands.common.states import RegistrationState
 
 
 class AgentTesting(unittest.TestCase):
@@ -94,7 +96,25 @@ class AcceptedAgentTesting(AgentTesting):
             message_handler.dispatch(AcceptedAgent.MembershipNotActivated)
         )
 
+    def test_job_query_and_transmit_needs_registration(self):
+        q = AcceptedAgent.queue(None, None, loop=None)
+        agent = AcceptedAgent(q, args=None, config=None)
+        jobs = agent.jobs(self.session)
+        self.assertEqual(0, len(jobs))
+
     def test_job_query_and_transmit(self):
+        reg = Registration(
+            uuid=uuid.uuid4().hex,
+            model=cloudhands.common.__version__)
+        user = self.session.query(User).one()
+        valid = self.session.query(
+            RegistrationState).filter(
+            RegistrationState.name=="valid").one()
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=valid, at=now)
+        self.session.add_all((reg, act))
+        self.session.commit()
+
         q = AcceptedAgent.queue(None, None, loop=None)
         agent = AcceptedAgent(q, args=None, config=None)
         jobs = agent.jobs(self.session)
