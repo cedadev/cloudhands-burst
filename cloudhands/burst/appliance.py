@@ -831,6 +831,19 @@ class PreProvisionAgent(Agent):
             except StopIteration:
                 log.error("Failed to find VDC")
 
+            ## DEBUG
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/query?type=catalog")
+            response = yield from client.request(
+                "GET", url, headers=headers)
+            data = yield from response.read_and_close()
+            tree = ET.fromstring(data.decode("utf-8"))
+            #mumble = next(find_records(tree))
+            log.debug(data)
+
             try:
                 catalogue = next(
                     find_catalogues(tree, name="UN-managed Public Catalog"))
