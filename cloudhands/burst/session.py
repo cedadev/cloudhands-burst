@@ -43,12 +43,11 @@ class SessionAgent(Agent):
     def touch_with_token(self, msg:Message, session):
         reg = session.query(Registration).filter(
             Registration.uuid == msg.uuid).first()
-        actor = session.query(Component).filter(
-            Component.handle=="burst.controller").one()
+        user = reg.changes[0].actor
         provider = session.query(Provider).filter(
             Provider.name==msg.provider).one()
         state = reg.changes[-1].state
-        act = Touch(artifact=reg, actor=actor, state=state, at=msg.ts)
+        act = Touch(artifact=reg, actor=user, state=state, at=msg.ts)
         resource = ProviderToken(
             touch=act, provider=provider,
             key=msg.key, value=msg.value)

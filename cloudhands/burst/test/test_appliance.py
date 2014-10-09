@@ -18,6 +18,7 @@ from cloudhands.burst.appliance import PreStopAgent
 
 import cloudhands.common
 from cloudhands.common.connectors import Registry
+from cloudhands.common.connectors import initialise
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import CatalogueItem
@@ -29,11 +30,15 @@ from cloudhands.common.schema import Node
 from cloudhands.common.schema import Organisation
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
+from cloudhands.common.schema import ProviderToken
+from cloudhands.common.schema import Registration
 from cloudhands.common.schema import SoftwareDefinedNetwork
 from cloudhands.common.schema import State
+from cloudhands.common.schema import Subscription
 from cloudhands.common.schema import Touch
 from cloudhands.common.schema import User
 from cloudhands.common.states import ApplianceState
+from cloudhands.common.states import RegistrationState
 
 
 class AgentTesting(unittest.TestCase):
@@ -41,24 +46,38 @@ class AgentTesting(unittest.TestCase):
     def setUp(self):
         """ Populate test database"""
         session = Registry().connect(sqlite3, ":memory:").session
-        session.add_all(
-            State(fsm=ApplianceState.table, name=v)
-            for v in ApplianceState.values)
-        session.add(
-            Component(handle="burst.controller", uuid=uuid.uuid4().hex))
+        initialise(session)
         session.add_all((
             Organisation(
                 uuid=uuid.uuid4().hex,
                 name="TestOrg"),
             Provider(
                 uuid=uuid.uuid4().hex,
-                name="cloudhands.jasmin.vcloud.phase04.cfg"),
-            )
-        )
+                name="cloudhands.jasmin.vcloud.phase04.cfg"
+            ),
+            Registration(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__
+            ),
+            User(
+                handle="Anon",
+                uuid=uuid.uuid4().hex
+            ),
+        ))
         session.commit()
 
         org = session.query(Organisation).one()
+        prvdr = session.query(Provider).one()
+        reg = session.query(Registration).one()
+        user = session.query(User).one()
+
         session.add_all((
+            Subscription(
+                uuid=uuid.uuid4().hex,
+                model=cloudhands.common.__version__,
+                organisation=org,
+                provider=prvdr
+            ),
             CatalogueItem(
                 uuid=uuid.uuid4().hex,
                 name="Web Server",
@@ -76,6 +95,19 @@ class AgentTesting(unittest.TestCase):
                 organisation=org,
             )
         ))
+        session.commit()
+
+        valid = session.query(
+            RegistrationState).filter(
+            RegistrationState.name == "valid").one()
+
+        now = datetime.datetime.utcnow()
+        act = Touch(artifact=reg, actor=user, state=valid, at=now)
+        token = ProviderToken(
+            touch=act, provider=prvdr,
+            key="T-Auth", value="abcdefghijklmnopqrstuvwxyz")
+
+        session.add(token)
         session.commit()
 
     def tearDown(self):
@@ -108,7 +140,7 @@ class PreCheckAgentTesting(AgentTesting):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         # 1. User creates new appliances
@@ -218,8 +250,8 @@ class PreCheckAgentTesting(AgentTesting):
 
     def test_operational_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
         org = session.query(Organisation).one()
+        user = session.query(User).one()
 
         now = datetime.datetime.utcnow()
         requested = session.query(ApplianceState).filter(
@@ -254,7 +286,7 @@ class PreCheckAgentTesting(AgentTesting):
 
     def test_preoperational_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -310,7 +342,7 @@ class PreDeleteAgentTesting(AgentTesting):
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -365,7 +397,7 @@ class PreOperationalAgentTesting(AgentTesting):
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -420,7 +452,7 @@ class PreProvisionAgentTesting(AgentTesting):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         # 1. User creates new appliances
@@ -499,7 +531,7 @@ class PreProvisionAgentTesting(AgentTesting):
 
         q = PreProvisionAgent.queue(None, None, loop=None)
         agent = PreProvisionAgent(q, args=None, config=None)
-        jobs = agent.jobs(session)
+        jobs = list(agent.jobs(session))
         self.assertEqual(1, len(jobs))
 
         q.put_nowait(jobs[0])
@@ -507,10 +539,11 @@ class PreProvisionAgentTesting(AgentTesting):
 
         job = q.get_nowait()
         self.assertEqual(4, len(job.artifact.changes))
+        self.assertEqual(3, len(job.token))
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -563,7 +596,7 @@ class ProvisioningAgentTesting(AgentTesting):
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -594,7 +627,7 @@ class ProvisioningAgentTesting(AgentTesting):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         # 1. User creates new appliances
@@ -673,7 +706,7 @@ class PreStartAgentTesting(AgentTesting):
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -723,7 +756,7 @@ class PreStopAgentTesting(AgentTesting):
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
+        user = session.query(User).one()
         org = session.query(Organisation).one()
 
         now = datetime.datetime.utcnow()
@@ -759,8 +792,8 @@ class ApplianceTesting(AgentTesting):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
-        user = User(handle="Anon", uuid=uuid.uuid4().hex)
         org = session.query(Organisation).one()
+        user = session.query(User).one()
 
         # 1. User creates a new appliance
         now = datetime.datetime.utcnow()

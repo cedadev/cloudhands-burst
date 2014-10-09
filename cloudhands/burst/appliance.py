@@ -16,6 +16,7 @@ import xml.sax.saxutils
 import aiohttp
 from chameleon import PageTemplateFile
 import pkg_resources
+from sqlalchemy import desc
 
 from cloudhands.burst.agent import Agent
 from cloudhands.burst.agent import Job
@@ -35,6 +36,7 @@ from cloudhands.common.schema import Node
 from cloudhands.common.schema import OSImage
 from cloudhands.common.schema import Provider
 from cloudhands.common.schema import ProviderReport
+from cloudhands.common.schema import ProviderToken
 from cloudhands.common.schema import Touch
 from cloudhands.common.states import ApplianceState
 
@@ -760,9 +762,20 @@ class PreProvisionAgent(Agent):
         return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_provision"]
+        #return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
+        #        if i.changes[-1].state.name == "pre_provision"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_provision":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                print(creds)
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_provisioning(self, msg:Message, session):
         provisioning = session.query(ApplianceState).filter(
