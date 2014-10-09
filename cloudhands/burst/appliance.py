@@ -178,6 +178,39 @@ find_templates = functools.partial(
 find_vdcs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vdc+xml']")
 
+@asyncio.coroutine
+def find_template_among_orgs(
+    client, headers, orgs, templateName,
+    catalogName="UN-managed Public Catalog"
+):
+    log = logging.getLogger("cloudhands.burst.appliance.find_template_among_orgs")
+    while True:
+        org = next(orgs)
+        log.debug(org)
+        response = yield from client.request(
+            "GET", org.attrib.get("href"),
+            headers=headers)
+        orgData = yield from response.read_and_close()
+        log.debug(orgData)
+        tree = ET.fromstring(orgData.decode("utf-8"))
+
+        for catalogue in find_catalogues(tree, name=catalogName):
+            response = yield from client.request(
+                "GET", catalogue.attrib.get("href"),
+                headers=headers)
+            catalogueData = yield from response.read_and_close()
+            log.debug(catalogueData)
+            tree = ET.fromstring(catalogueData.decode("utf-8"))
+            for catalogueItem in find_catalogueitems(tree, name=templateName):
+                response = yield from client.request(
+                    "GET", catalogueItem.attrib.get("href"),
+                    headers=headers)
+                catalogueItemData = yield from response.read_and_close()
+                log.debug(catalogueItemData)
+                tree = ET.fromstring(catalogueItemData.decode("utf-8"))
+
+                for template in find_templates(tree):
+                    return template
 
 
 def hosts(session, state=None):
@@ -818,56 +851,30 @@ class PreProvisionAgent(Agent):
 
             # Integration 
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
+
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
 
-            orgs = [i for i in (adminOrg, userOrg) if i is not None]
-
-            # TODO: return org, template
-            templates = []
-            for org in orgs:
-                log.debug(org)
-                response = yield from client.request(
-                    "GET", org.attrib.get("href"),
-                    headers=headers)
-                orgData = yield from response.read_and_close()
-                log.debug(orgData)
-                tree = ET.fromstring(orgData.decode("utf-8"))
-                #try:
-                #    vdcLink = next(find_vdcs(tree))
-                #except StopIteration:
-                #    log.error("Failed to find VDC")
-
-                for catalogue in find_catalogues(
-                     tree, name="UN-managed Public Catalog"
-                ):
-
-                    response = yield from client.request(
-                        "GET", catalogue.attrib.get("href"),
-                        headers=headers)
-                    catalogueData = yield from response.read_and_close()
-                    tree = ET.fromstring(catalogueData.decode("utf-8"))
-                    for catalogueItem in find_catalogueitems(
-                        tree, name="CentOS-6.5-x86_64-110814"
-                    ):
-                        log.debug(catalogueItem)
-                        response = yield from client.request(
-                            "GET", catalogueItem.attrib.get("href"),
-                            headers=headers)
-                        catalogueItemData = yield from response.read_and_close()
-                        log.debug(catalogueItemData)
-                        tree = ET.fromstring(catalogueItemData.decode("utf-8"))
-
-                        # FIXME: a fudge for the demo
-                        templates = list(find_templates(tree))
-
-            log.debug(templates)
+            tmpltName = "CentOS-6.5upd-x86_64-Server"
+            orgs = (i for i in (adminOrg, userOrg) if i is not None)
             try:
-                template = templates[0]
-            except IndexError:
-                log.error("Failed to find template")
-                ET.dump(tree)
+                template = yield from find_template_among_orgs(
+                    client, headers, orgs, tmpltName)
+            except StopIteration:
+                log.error("Couldn't find template {}".format(templateName))
+            else:
+                log.debug(template)
  
-            # Can also finding templates in VDC
+            response = yield from client.request(
+                "GET", userOrg.attrib.get("href"),
+                headers=headers)
+            orgData = yield from response.read_and_close()
+            log.debug(orgData)
+            tree = ET.fromstring(orgData.decode("utf-8"))
+            try:
+                vdcLink = next(find_vdcs(tree))
+            except StopIteration:
+                log.error("Failed to find VDC")
+
             response = yield from client.request(
                 "GET", vdcLink.attrib.get("href"),
                 headers=headers)
