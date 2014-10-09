@@ -807,70 +807,59 @@ class PreProvisionAgent(Agent):
                 scheme="https",
                 host=config["host"]["name"],
                 port=config["host"]["port"],
-                endpoint="api/org")
+                #endpoint="api/org")
+                endpoint="api/admin/orgs/query?format=references") # Integration
             response = yield from client.request(
                 "GET", url,
                 headers=headers)
 
             orgList = yield from response.read_and_close()
             tree = ET.fromstring(orgList.decode("utf-8"))
-            orgFound = find_orgs(tree, name=config["vdc"]["org"])
 
-            try:
-                org = next(orgFound)
-            except StopIteration:
-                log.error(orgFound)
+            # Integration 
+            adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
+            userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
 
-            response = yield from client.request(
-                "GET", org.attrib.get("href"),
-                headers=headers)
-            orgData = yield from response.read_and_close()
-            tree = ET.fromstring(orgData.decode("utf-8"))
-            try:
-                vdcLink = next(find_vdcs(tree))
-            except StopIteration:
-                log.error("Failed to find VDC")
+            orgs = [i for i in (adminOrg, userOrg) if i is not None]
 
-            ## DEBUG
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/query?type=catalog")
-            response = yield from client.request(
-                "GET", url, headers=headers)
-            data = yield from response.read_and_close()
-            tree = ET.fromstring(data.decode("utf-8"))
-            #mumble = next(find_records(tree))
-            log.debug(data)
+            # TODO: return org, template
+            templates = []
+            for org in orgs:
+                log.debug(org)
+                response = yield from client.request(
+                    "GET", org.attrib.get("href"),
+                    headers=headers)
+                orgData = yield from response.read_and_close()
+                log.debug(orgData)
+                tree = ET.fromstring(orgData.decode("utf-8"))
+                #try:
+                #    vdcLink = next(find_vdcs(tree))
+                #except StopIteration:
+                #    log.error("Failed to find VDC")
 
-            try:
-                catalogue = next(
-                    find_catalogues(tree, name="UN-managed Public Catalog"))
-            except StopIteration:
-                log.error("Failed to find catalogue")
+                for catalogue in find_catalogues(
+                     tree, name="UN-managed Public Catalog"
+                ):
 
-            response = yield from client.request(
-                "GET", catalogue.attrib.get("href"),
-                headers=headers)
-            catalogueData = yield from response.read_and_close()
-            log.debug(catalogueData)
-            tree = ET.fromstring(catalogueData.decode("utf-8"))
-            try:
-                # FIXME:
-                catalogueItem = next(
-                    find_catalogueitems(tree, name="CentOS-6.5-x86_64-110814"))
-            except StopIteration:
-                log.error("Failed to find catalogue item")
-            response = yield from client.request(
-                "GET", catalogueItem.attrib.get("href"),
-                headers=headers)
-            catalogueItemData = yield from response.read_and_close()
-            log.debug(catalogueItemData)
-            tree = ET.fromstring(catalogueItemData.decode("utf-8"))
+                    response = yield from client.request(
+                        "GET", catalogue.attrib.get("href"),
+                        headers=headers)
+                    catalogueData = yield from response.read_and_close()
+                    tree = ET.fromstring(catalogueData.decode("utf-8"))
+                    for catalogueItem in find_catalogueitems(
+                        tree, name="CentOS-6.5-x86_64-110814"
+                    ):
+                        log.debug(catalogueItem)
+                        response = yield from client.request(
+                            "GET", catalogueItem.attrib.get("href"),
+                            headers=headers)
+                        catalogueItemData = yield from response.read_and_close()
+                        log.debug(catalogueItemData)
+                        tree = ET.fromstring(catalogueItemData.decode("utf-8"))
 
-            # FIXME: a fudge for the demo
-            templates = list(find_templates(tree))
+                        # FIXME: a fudge for the demo
+                        templates = list(find_templates(tree))
+
             log.debug(templates)
             try:
                 template = templates[0]
