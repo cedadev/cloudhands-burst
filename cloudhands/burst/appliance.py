@@ -186,12 +186,10 @@ def find_template_among_orgs(
     log = logging.getLogger("cloudhands.burst.appliance.find_template_among_orgs")
     while True:
         org = next(orgs)
-        log.debug(org)
         response = yield from client.request(
             "GET", org.attrib.get("href"),
             headers=headers)
         orgData = yield from response.read_and_close()
-        log.debug(orgData)
         tree = ET.fromstring(orgData.decode("utf-8"))
 
         for catalogue in find_catalogues(tree, name=catalogName):
@@ -199,14 +197,12 @@ def find_template_among_orgs(
                 "GET", catalogue.attrib.get("href"),
                 headers=headers)
             catalogueData = yield from response.read_and_close()
-            log.debug(catalogueData)
             tree = ET.fromstring(catalogueData.decode("utf-8"))
             for catalogueItem in find_catalogueitems(tree, name=templateName):
                 response = yield from client.request(
                     "GET", catalogueItem.attrib.get("href"),
                     headers=headers)
                 catalogueItemData = yield from response.read_and_close()
-                log.debug(catalogueItemData)
                 tree = ET.fromstring(catalogueItemData.decode("utf-8"))
 
                 for template in find_templates(tree):
@@ -850,11 +846,11 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(orgList.decode("utf-8"))
 
             # Integration 
+            tmpltName = "CentOS-6.5upd-x86_64-Server"
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
+            #
 
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
-
-            tmpltName = "CentOS-6.5upd-x86_64-Server"
             orgs = (i for i in (adminOrg, userOrg) if i is not None)
             try:
                 template = yield from find_template_among_orgs(
