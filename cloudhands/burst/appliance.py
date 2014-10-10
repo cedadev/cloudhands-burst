@@ -773,7 +773,6 @@ class PreProvisionAgent(Agent):
                     Provider.name == prvdrName).order_by(
                     desc(Touch.at)).first()
                 creds = (prvdrName, token.key, token.value) if token else None
-                print(creds)
                     
                 yield Job(app.uuid, creds, app)
 
