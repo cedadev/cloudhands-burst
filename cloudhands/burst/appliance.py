@@ -869,14 +869,11 @@ class PreProvisionAgent(Agent):
                     client, headers, orgs, tmpltName)
             except StopIteration:
                 log.error("Couldn't find template {}".format(templateName))
-            else:
-                log.debug(template)
  
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
                 headers=headers)
             orgData = yield from response.read_and_close()
-            log.debug(orgData)
             tree = ET.fromstring(orgData.decode("utf-8"))
             try:
                 vdcLink = next(find_vdcs(tree))
@@ -888,6 +885,7 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             vdcData = yield from response.read_and_close()
             tree = ET.fromstring(vdcData.decode("utf-8"))
+            log.debug(vdcData)
 
             # Network details via query to vdc
             try:
@@ -902,6 +900,7 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(netData.decode("utf-8"))
             netDetails = next(
                 find_results(tree, name=config["vdc"]["network"]))
+            log.debug(netData)
 
             data = {
                 "appliance": {

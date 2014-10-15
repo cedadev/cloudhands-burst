@@ -8,7 +8,7 @@ powerOn 'false';">
 <InstantiationParams>
 <NetworkConfigSection>
     <ovf:Info>The configuration parameters for logical networks</ovf:Info>
-    <NetworkConfig networkName="proxied-external-network">
+    <NetworkConfig networkName="STFC-Administrator-NATTest #1">
     <Configuration>
         <ParentNetwork
 tal:attributes="
