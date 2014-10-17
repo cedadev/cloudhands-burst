@@ -223,13 +223,11 @@ class Strategy:
 
     @staticmethod
     def config(providerName):
-        for config in [
+        return next((
             cfg for p in providers.values() for cfg in p
-            if cfg["metadata"]["path"] == providerName
-        ]:
-            return config
-        else:
-            return None
+            if cfg["metadata"]["path"] == providerName),
+            None
+        )
 
     @staticmethod
     def recommend(host):  # TODO sort providers
@@ -332,7 +330,8 @@ class PreCheckAgent(Agent):
                 (r for c in app.changes for r in c.resources),
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
-            node = next(i for i in resources if isinstance(i, Node))
+            node = next((i for i in resources if isinstance(i, Node)), None)
+            log.debug(node)
             config = Strategy.config(node.provider.name)
 
             # FIXME: Tokens to be maintained in database. Start of login code
@@ -885,7 +884,6 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             vdcData = yield from response.read_and_close()
             tree = ET.fromstring(vdcData.decode("utf-8"))
-            log.debug(vdcData)
 
             # Network details via query to vdc
             try:
@@ -900,7 +898,6 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(netData.decode("utf-8"))
             netDetails = next(
                 find_results(tree, name=config["vdc"]["network"]))
-            log.debug(netData)
 
             data = {
                 "appliance": {
@@ -982,6 +979,7 @@ class ProvisioningAgent(Agent):
         log.info("Activated.")
         while True:
             job = yield from self.work.get()
+            log.debug(job)
 
             app = job.artifact
             resources = sorted(
@@ -1020,41 +1018,76 @@ class ProvisioningAgent(Agent):
 
             # FIXME: End of login code
 
-            url = "{}/guestCustomizationSection".format(node.uri)
             response = yield from client.request(
-                "GET", node.uri, headers=headers)
+                "GET", node.uri,
+                headers=headers)
             reply = yield from response.read_and_close()
+            log.debug(reply)
             tree = ET.fromstring(reply.decode("utf-8"))
 
-            try:
-                sectionElement = next(find_customizationsection(tree))
-            except StopIteration:
-                log.error("Missing customisation script")
-                ET.dump(tree)
-            else:
-                scriptElement = next(find_customizationscript(tree))
-                #scriptElement.text = xml.sax.saxutils.escape(
-                #    customizationScript, entities={
-                #        '"': "&quot;", "\n": "&#13;",
-                #        "%": "&#37;", "'": "&apos;"})
+            ovf = next(find_xpath( ".//*[@rel='ovf']", tree,
+                namespaces={"": "http://www.vmware.com/vcloud/v1.5"}), None)
 
-                scriptElement.text = customizationScript
+            url = ovf.attrib.get("href")
+            response = yield from client.request(
+                "GET", url,
+                headers=headers)
+            reply = yield from response.read_and_close()
+            log.debug(reply)
+
+            data = {}
+            macro = PageTemplateFile(pkg_resources.resource_filename(
+                "cloudhands.burst.drivers", "GuestCustomisationSection.pt"))
+            url = "{}/guestCustomizationSection".format(node.uri)
+            headers["Content-Type"] = (
+            "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
+            try:
+                payload = macro(**data)
+            except Exception as e:
+                log.error(e)
+
+            response = yield from client.request(
+                "PUT", url,
+                headers=headers,
+                data=payload.encode("utf-8"))
+            reply = yield from response.read_and_close()
+            log.debug(reply)
+
+            #url = "{}/guestCustomizationSection".format(node.uri)
+            #response = yield from client.request(
+            #    "GET", node.uri, headers=headers)
+            #reply = yield from response.read_and_close()
+            #tree = ET.fromstring(reply.decode("utf-8"))
+
+            #try:
+            #    sectionElement = next(find_customizationsection(tree))
+            #except StopIteration:
+            #    log.error("Missing customisation script")
+            #    ET.dump(tree)
+            #else:
+            #    scriptElement = next(find_customizationscript(tree))
+            #    #scriptElement.text = xml.sax.saxutils.escape(
+            #    #    customizationScript, entities={
+            #    #        '"': "&quot;", "\n": "&#13;",
+            #    #        "%": "&#37;", "'": "&apos;"})
+
+             #   scriptElement.text = customizationScript
 
                 # Auto-logon count must be within 1 to 100 range if
                 # enabled or 0 otherwise
-                aaLCElement = next(
-                    i for i in sectionElement
-                    if i.tag.endswith("AdminAutoLogonCount"))
-                aaLCElement.text = "0"
+             #   aaLCElement = next(
+             #       i for i in sectionElement
+             #       if i.tag.endswith("AdminAutoLogonCount"))
+             #   aaLCElement.text = "0"
  
-                url = sectionElement.attrib.get("href")
-                headers["Content-Type"] = (
-                    "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
-                response = yield from client.request(
-                    "PUT", url,
-                    headers=headers,
-                    data=ET.tostring(sectionElement, encoding="utf-8"))
-                reply = yield from response.read_and_close()
+#                url = sectionElement.attrib.get("href")
+#                headers["Content-Type"] = (
+#                    "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
+#                response = yield from client.request(
+#                    "PUT", url,
+#                    headers=headers,
+#                    data=ET.tostring(sectionElement, encoding="utf-8"))
+#                reply = yield from response.read_and_close()
 
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())
