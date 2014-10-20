@@ -5,6 +5,8 @@ xmlns:vcloud 'http://www.vmware.com/vcloud/v1.5';
 ovf:required 'false';
 type 'application/vnd.vmware.vcloud.guestCustomizationSection+xml'">
     <ovf:Info>Specifies Guest OS Customization Settings</ovf:Info>
+    <vcloud:VirtualMachineId
+    tal:content="vm.id"></vcloud:VirtualMachineId>
     <vcloud:Enabled>true</vcloud:Enabled>
     <vcloud:AdminPasswordEnabled>false</vcloud:AdminPasswordEnabled>
     <vcloud:AdminAutoLogonEnabled>false</vcloud:AdminAutoLogonEnabled>

@@ -987,6 +987,7 @@ class ProvisioningAgent(Agent):
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
             node = next(i for i in resources if isinstance(i, Node))
+            choice = next(i for i in resources if isinstance(i, CatalogueChoice))
             config = Strategy.config(node.provider.name)
 
             # FIXME: Tokens to be maintained in database. Start of login code
@@ -1018,13 +1019,46 @@ class ProvisioningAgent(Agent):
 
             # FIXME: End of login code
 
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                #endpoint="api/org")
+                endpoint="api/admin/orgs/query?format=references") # Integration
             response = yield from client.request(
-                "GET", node.uri,
+                "GET", url,
+                headers=headers)
+
+            orgList = yield from response.read_and_close()
+            tree = ET.fromstring(orgList.decode("utf-8"))
+
+            #FIXME: choice.name
+            tmpltName = "CentOS-6.5upd-x86_64-Server"
+            adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
+            #
+
+            userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
+            orgs = (i for i in (adminOrg, userOrg) if i is not None)
+            try:
+                template = yield from find_template_among_orgs(
+                    client, headers, orgs, tmpltName)
+            except StopIteration:
+                log.error("Couldn't find template {}".format(templateName))
+ 
+            response = yield from client.request(
+                "GET", template.get("href"),
                 headers=headers)
             reply = yield from response.read_and_close()
-            log.debug(reply)
             tree = ET.fromstring(reply.decode("utf-8"))
 
+            cs = next(find_customizationsection(tree), None)
+            log.debug(cs)
+            mcId = next(
+                (i for i in cs if i.tag.endswith("VirtualMachineId")),
+                None)
+
+            # TODO: Create template with VirtualMachineId
+            log.debug(mcId)
             ovf = next(find_xpath( ".//*[@rel='ovf']", tree,
                 namespaces={"": "http://www.vmware.com/vcloud/v1.5"}), None)
 
