@@ -582,6 +582,7 @@ class APITemplateTests(unittest.TestCase):
                 "description": "This VM is for testing",
             },
             "network": {
+                "interface": "public ethernet",
                 "name": "managed-external-network",
                 "href": "http://cloud/api/networks/12345678"
             },
@@ -590,4 +591,4 @@ class APITemplateTests(unittest.TestCase):
                 "href": "http://cloud/api/items/12345678"
             }
         }
-        self.assertEqual(733, len(self.macro(**data)))
+        self.assertEqual(724, len(self.macro(**data)))

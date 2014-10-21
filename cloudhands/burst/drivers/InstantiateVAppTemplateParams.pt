@@ -8,7 +8,9 @@ powerOn 'false';">
 <InstantiationParams>
 <NetworkConfigSection>
     <ovf:Info>The configuration parameters for logical networks</ovf:Info>
-    <NetworkConfig networkName="STFC-Administrator-NATTest #1">
+    <NetworkConfig
+tal:attributes="
+networkName network.interface;">
     <Configuration>
         <ParentNetwork
 tal:attributes="

@@ -905,6 +905,7 @@ class PreProvisionAgent(Agent):
                     "description": "FIXME: Description",
                 },
                 "network": {
+                    "interface": "STFC-Administrator-NATTest #1",
                     "name": config["vdc"]["network"],
                     "href": netDetails.attrib.get("href"),
                 },
