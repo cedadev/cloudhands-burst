@@ -1052,24 +1052,16 @@ class ProvisioningAgent(Agent):
             tree = ET.fromstring(reply.decode("utf-8"))
 
             cs = next(find_customizationsection(tree), None)
-            log.debug(cs)
-            mcId = next(
+            vmId = next(
                 (i for i in cs if i.tag.endswith("VirtualMachineId")),
                 None)
 
-            # TODO: Create template with VirtualMachineId
-            log.debug(mcId)
-            ovf = next(find_xpath( ".//*[@rel='ovf']", tree,
-                namespaces={"": "http://www.vmware.com/vcloud/v1.5"}), None)
+            data = {
+                "vm": {
+                    "id": vmId.text,
+                },
+            }
 
-            url = ovf.attrib.get("href")
-            response = yield from client.request(
-                "GET", url,
-                headers=headers)
-            reply = yield from response.read_and_close()
-            log.debug(reply)
-
-            data = {}
             macro = PageTemplateFile(pkg_resources.resource_filename(
                 "cloudhands.burst.drivers", "GuestCustomisationSection.pt"))
             url = "{}/guestCustomizationSection".format(node.uri)
@@ -1077,6 +1069,7 @@ class ProvisioningAgent(Agent):
             "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
             try:
                 payload = macro(**data)
+                log.debug(payload)
             except Exception as e:
                 log.error(e)
 
