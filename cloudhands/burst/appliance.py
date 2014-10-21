@@ -161,6 +161,16 @@ def find_networkconnection(tree):
     return (i for s in find_networkconnectionsection(tree) for i in s
             if i.tag.endswith("NetworkConnection"))
 
+def find_networkconfigsection(tree): 
+    elems = find_xpath(
+        ".//*[@type='application/vnd.vmware.vcloud.networkConfigSection+xml']",
+        tree, namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
+    return (i for i in elems if i.tag.endswith("NetworkConfigSection"))
+
+def find_networkconfig(tree): 
+    return (i for s in find_networkconfigsection(tree) for i in s
+            if i.tag.endswith("NetworkConfig"))
+
 find_networkinterface = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.admin.network+xml']",
     namespaces={"": "http://www.vmware.com/vcloud/v1.5"})
@@ -868,6 +878,13 @@ class PreProvisionAgent(Agent):
                     client, headers, orgs, tmpltName)
             except StopIteration:
                 log.error("Couldn't find template {}".format(templateName))
+
+            response = yield from client.request(
+                "GET", template.get("href"),
+                headers=headers)
+            reply = yield from response.read_and_close()
+            tree = ET.fromstring(reply.decode("utf-8"))
+            nc = next(find_networkconfig(tree), None)
  
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
@@ -905,7 +922,7 @@ class PreProvisionAgent(Agent):
                     "description": "FIXME: Description",
                 },
                 "network": {
-                    "interface": "STFC-Administrator-NATTest #1",
+                    "interface": nc.attrib.get("networkName"),
                     "name": config["vdc"]["network"],
                     "href": netDetails.attrib.get("href"),
                 },
