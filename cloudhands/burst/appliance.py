@@ -1051,88 +1051,88 @@ class ProvisioningAgent(Agent):
             tree = ET.fromstring(orgList.decode("utf-8"))
 
             #FIXME: choice.name
-            tmpltName = "CentOS-6.5upd-x86_64-Server"
-            adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
+            # tmpltName = "CentOS-6.5upd-x86_64-Server"
+            # adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
             #
 
-            userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
-            orgs = (i for i in (adminOrg, userOrg) if i is not None)
-            try:
-                template = yield from find_template_among_orgs(
-                    client, headers, orgs, tmpltName)
-            except StopIteration:
-                log.error("Couldn't find template {}".format(templateName))
+            # userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
+            # orgs = (i for i in (adminOrg, userOrg) if i is not None)
+            # try:
+            #     template = yield from find_template_among_orgs(
+            #         client, headers, orgs, tmpltName)
+            # except StopIteration:
+            #     log.error("Couldn't find template {}".format(templateName))
  
+            # response = yield from client.request(
+            #     "GET", template.get("href"),
+            #     headers=headers)
+            # reply = yield from response.read_and_close()
+            # tree = ET.fromstring(reply.decode("utf-8"))
+
+            # cs = next(find_customizationsection(tree), None)
+            # vmId = next(
+            #     (i for i in cs if i.tag.endswith("VirtualMachineId")),
+            #     None)
+
+            # data = {
+            #     "vm": {
+            #         "id": vmId.text,
+            #     },
+            # }
+
+            # macro = PageTemplateFile(pkg_resources.resource_filename(
+            #     "cloudhands.burst.drivers", "GuestCustomisationSection.pt"))
+            # url = "{}/guestCustomizationSection".format(node.uri)
+            # headers["Content-Type"] = (
+            # "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
+            # try:
+            #     payload = macro(**data)
+            #     log.debug(payload)
+            # except Exception as e:
+            #     log.error(e)
+
+            # response = yield from client.request(
+            #     "PUT", url,
+            #     headers=headers,
+            #     data=payload.encode("utf-8"))
+            # reply = yield from response.read_and_close()
+            # log.debug(reply)
+
+            url = "{}/guestCustomizationSection".format(node.uri)
             response = yield from client.request(
-                "GET", template.get("href"),
-                headers=headers)
+                "GET", node.uri, headers=headers)
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
 
-            cs = next(find_customizationsection(tree), None)
-            vmId = next(
-                (i for i in cs if i.tag.endswith("VirtualMachineId")),
-                None)
-
-            data = {
-                "vm": {
-                    "id": vmId.text,
-                },
-            }
-
-            macro = PageTemplateFile(pkg_resources.resource_filename(
-                "cloudhands.burst.drivers", "GuestCustomisationSection.pt"))
-            url = "{}/guestCustomizationSection".format(node.uri)
-            headers["Content-Type"] = (
-            "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
             try:
-                payload = macro(**data)
-                log.debug(payload)
-            except Exception as e:
-                log.error(e)
+                sectionElement = next(find_customizationsection(tree))
+            except StopIteration:
+                log.error("Missing customisation script")
+                ET.dump(tree)
+            else:
+                scriptElement = next(find_customizationscript(tree))
+                #scriptElement.text = xml.sax.saxutils.escape(
+                #    customizationScript, entities={
+                #        '"': "&quot;", "\n": "&#13;",
+                #        "%": "&#37;", "'": "&apos;"})
 
-            response = yield from client.request(
-                "PUT", url,
-                headers=headers,
-                data=payload.encode("utf-8"))
-            reply = yield from response.read_and_close()
-            log.debug(reply)
-
-            #url = "{}/guestCustomizationSection".format(node.uri)
-            #response = yield from client.request(
-            #    "GET", node.uri, headers=headers)
-            #reply = yield from response.read_and_close()
-            #tree = ET.fromstring(reply.decode("utf-8"))
-
-            #try:
-            #    sectionElement = next(find_customizationsection(tree))
-            #except StopIteration:
-            #    log.error("Missing customisation script")
-            #    ET.dump(tree)
-            #else:
-            #    scriptElement = next(find_customizationscript(tree))
-            #    #scriptElement.text = xml.sax.saxutils.escape(
-            #    #    customizationScript, entities={
-            #    #        '"': "&quot;", "\n": "&#13;",
-            #    #        "%": "&#37;", "'": "&apos;"})
-
-             #   scriptElement.text = customizationScript
+                scriptElement.text = customizationScript
 
                 # Auto-logon count must be within 1 to 100 range if
                 # enabled or 0 otherwise
-             #   aaLCElement = next(
-             #       i for i in sectionElement
-             #       if i.tag.endswith("AdminAutoLogonCount"))
-             #   aaLCElement.text = "0"
+                aaLCElement = next(
+                    i for i in sectionElement
+                    if i.tag.endswith("AdminAutoLogonCount"))
+                aaLCElement.text = "0"
  
-#                url = sectionElement.attrib.get("href")
-#                headers["Content-Type"] = (
-#                    "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
-#                response = yield from client.request(
-#                    "PUT", url,
-#                    headers=headers,
-#                    data=ET.tostring(sectionElement, encoding="utf-8"))
-#                reply = yield from response.read_and_close()
+                url = sectionElement.attrib.get("href")
+                headers["Content-Type"] = (
+                    "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
+                response = yield from client.request(
+                    "PUT", url,
+                    headers=headers,
+                    data=ET.tostring(sectionElement, encoding="utf-8"))
+                reply = yield from response.read_and_close()
 
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())
