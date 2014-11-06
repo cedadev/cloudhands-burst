@@ -30,11 +30,14 @@ href template.href;" />
      <NetworkConnectionSection
      xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
      type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
-     href="https://vcloud-ref.ceda.ac.uk/api/vAppTemplate/vm-60141195-7c90-4d0d-a506-64d8fa0c209f/networkConnectionSection/"
-     ovf:required="false">
+     ovf:required="false"
+tal:attributes="
+href template.network.connectionsection.href;">
         <ovf:Info />
         <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
-        <NetworkConnection network="vAppNetwork">
+        <NetworkConnection
+tal:attributes="
+network network.name;">
            <NetworkConnectionIndex>0</NetworkConnectionIndex>
            <IsConnected>true</IsConnected>
            <IpAddressAllocationMode>POOL</IpAddressAllocationMode>
@@ -42,5 +45,4 @@ href template.href;" />
      </NetworkConnectionSection>
   </InstantiationParams>
 </SourcedItem>
-
 </ComposeVAppParams>

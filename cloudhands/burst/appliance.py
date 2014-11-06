@@ -809,6 +809,8 @@ class PreProvisionAgent(Agent):
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
         macro = PageTemplateFile(pkg_resources.resource_filename(
             "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
+        macro = PageTemplateFile(pkg_resources.resource_filename(
+            "cloudhands.burst.drivers", "ComposeVAppParams.pt"))
         while True:
             job = yield from self.work.get()
             app = job.artifact
@@ -884,7 +886,9 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
+            ncs = next(find_networkconnectionsection(tree), None)
             nc = next(find_networkconfig(tree), None)
+            
  
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
@@ -916,28 +920,39 @@ class PreProvisionAgent(Agent):
             netDetails = next(
                 find_results(tree, name=config["vdc"]["network"]))
 
-            data = {
-                "appliance": {
-                    "name": label.name,
-                    "description": "FIXME: Description",
-                },
-                "network": {
-                    "interface": nc.attrib.get("networkName"),
-                    "name": config["vdc"]["network"],
-                    "href": netDetails.attrib.get("href"),
-                },
-                "template": {
-                    "name": template.attrib.get("name"),
-                    "href": template.attrib.get("href"),
+            try:
+                data = {
+                    "appliance": {
+                        "name": label.name,
+                        "description": "FIXME: Description",
+                    },
+                    "network": {
+                        "interface": nc.attrib.get("networkName"),
+                        "name": config["vdc"]["network"],
+                        "href": netDetails.attrib.get("href"),
+                    },
+                    "template": {
+                        "name": template.attrib.get("name"),
+                        "href": template.attrib.get("href"),
+                        "network": {
+                            "connectionsection": {
+                                "href": ncs.attrib.get("href"),
+                            }
+                        }
+                    }
                 }
-            }
 
-            url = "{vdc}/{endpoint}".format(
-                vdc=vdcLink.attrib.get("href"),
-                endpoint="action/instantiateVAppTemplate")
-            headers["Content-Type"] = (
-            "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
-            payload = macro(**data)
+                url = "{vdc}/{endpoint}".format(
+                    vdc=vdcLink.attrib.get("href"),
+                    endpoint="action/composeVApp")
+                    #endpoint="action/instantiateVAppTemplate")
+                headers["Content-Type"] = (
+                "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
+                headers["Content-Type"] = (
+                "application/vnd.vmware.vcloud.composeVAppParams+xml")
+                payload = macro(**data)
+            except Exception as e:
+                log.error(e)
             log.debug(payload)
 
             response = yield from client.request(
