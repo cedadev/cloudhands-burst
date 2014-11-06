@@ -938,12 +938,14 @@ class PreProvisionAgent(Agent):
             headers["Content-Type"] = (
             "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
             payload = macro(**data)
+            log.debug(payload)
 
             response = yield from client.request(
                 "POST", url,
                 headers=headers,
                 data=payload.encode("utf-8"))
             reply = yield from response.read_and_close()
+            log.debug(reply)
 
             tree = ET.fromstring(reply.decode("utf-8"))
             try:

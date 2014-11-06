@@ -1,0 +1,46 @@
+<ComposeVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
+xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+tal:attributes="
+name appliance.name;
+deploy 'false';
+powerOn 'false';">
+<Description tal:content="appliance.description"></Description>
+<InstantiationParams>
+<NetworkConfigSection>
+    <ovf:Info>Configuration parameters for logical networks</ovf:Info>
+    <NetworkConfig
+tal:attributes="
+networkName network.interface;">
+    <Configuration>
+        <ParentNetwork
+tal:attributes="
+name network.name;
+href network.href;"/>
+        <FenceMode>bridged</FenceMode>
+    </Configuration>
+    </NetworkConfig>
+</NetworkConfigSection>
+</InstantiationParams>
+
+<SourcedItem>
+<Source
+tal:attributes="
+href template.href;" />
+  <InstantiationParams>
+     <NetworkConnectionSection
+     xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
+     type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
+     href="https://vcloud-ref.ceda.ac.uk/api/vAppTemplate/vm-60141195-7c90-4d0d-a506-64d8fa0c209f/networkConnectionSection/"
+     ovf:required="false">
+        <ovf:Info />
+        <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
+        <NetworkConnection network="vAppNetwork">
+           <NetworkConnectionIndex>0</NetworkConnectionIndex>
+           <IsConnected>true</IsConnected>
+           <IpAddressAllocationMode>POOL</IpAddressAllocationMode>
+        </NetworkConnection>
+     </NetworkConnectionSection>
+  </InstantiationParams>
+</SourcedItem>
+
+</ComposeVAppParams>
