@@ -569,7 +569,7 @@ class XMLTests(unittest.TestCase):
             ("172.16.151.170", "172.16.151.171"),
             tuple(i.text for i in rv[0]))
 
-class APITemplateTests(unittest.TestCase):
+class InstantiateVAppTests(unittest.TestCase):
 
     def setUp(self):
         self.macro = PageTemplateFile(pkg_resources.resource_filename(
@@ -592,3 +592,36 @@ class APITemplateTests(unittest.TestCase):
             }
         }
         self.assertEqual(724, len(self.macro(**data)))
+
+class ComposeVAppTests(unittest.TestCase):
+
+    def setUp(self):
+        self.macro = PageTemplateFile(pkg_resources.resource_filename(
+            "cloudhands.burst.drivers", "ComposeVAppParams.pt"))
+
+    def test_render(self):
+        data = {
+            "appliance": {
+                "name": "My Test VM",
+                "description": "This VM is for testing",
+                "vms": [
+                        {
+                            "name": "vm_001",
+                            "href": "http://cloud.io/vms/1",
+                            "networks": [
+                                {"href": "http://cloud.io/networks/3"},
+                            ]
+                        },
+                ],
+            },
+            "network": {
+                "interface": "public ethernet",
+                "name": "managed-external-network",
+                "href": "http://cloud/api/networks/12345678"
+            },
+            "template": {
+                "name": "Ubuntu",
+                "href": "http://cloud/api/items/12345678"
+            }
+        }
+        self.assertEqual(1376, len(self.macro(**data)))

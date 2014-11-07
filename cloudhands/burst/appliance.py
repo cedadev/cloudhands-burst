@@ -190,6 +190,9 @@ find_templates = functools.partial(
 find_vdcs = functools.partial(
     find_xpath, "./*/[@type='application/vnd.vmware.vcloud.vdc+xml']")
 
+find_vms = functools.partial(
+    find_xpath, ".//*[@type='application/vnd.vmware.vcloud.vm+xml']")
+
 @asyncio.coroutine
 def find_template_among_orgs(
     client, headers, orgs, templateName,
@@ -886,9 +889,9 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
-            ncs = next(find_networkconnectionsection(tree), None)
             nc = next(find_networkconfig(tree), None)
-            
+            for vm in find_vms(tree):
+                ncs = next(find_networkconnectionsection(vm), None)
  
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
@@ -925,6 +928,14 @@ class PreProvisionAgent(Agent):
                     "appliance": {
                         "name": label.name,
                         "description": "FIXME: Description",
+                        "vms": [
+                                {
+                                    "href": None,
+                                    "networks": [
+                                        {"href": ncs.attrib.get("href")},
+                                    ],
+                                }
+                            ]
                     },
                     "network": {
                         "interface": nc.attrib.get("networkName"),
@@ -934,11 +945,6 @@ class PreProvisionAgent(Agent):
                     "template": {
                         "name": template.attrib.get("name"),
                         "href": template.attrib.get("href"),
-                        "network": {
-                            "connectionsection": {
-                                "href": ncs.attrib.get("href"),
-                            }
-                        }
                     }
                 }
 
@@ -951,9 +957,9 @@ class PreProvisionAgent(Agent):
                 headers["Content-Type"] = (
                 "application/vnd.vmware.vcloud.composeVAppParams+xml")
                 payload = macro(**data)
+                log.debug(payload)
             except Exception as e:
                 log.error(e)
-            log.debug(payload)
 
             response = yield from client.request(
                 "POST", url,

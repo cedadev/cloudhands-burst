@@ -22,17 +22,16 @@ href network.href;"/>
 </NetworkConfigSection>
 </InstantiationParams>
 
-<SourcedItem>
-<Source
-tal:attributes="
-href template.href;" />
-  <InstantiationParams>
+<SourcedItem tal:repeat="vm appliance.vms" >
+<Source tal:attributes="href vm.href;" />
+  <InstantiationParams
+tal:repeat="net vm.networks">
      <NetworkConnectionSection
      xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
      type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
      ovf:required="false"
 tal:attributes="
-href template.network.connectionsection.href;">
+href net.href;">
         <ovf:Info />
         <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
         <NetworkConnection
