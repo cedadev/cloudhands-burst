@@ -890,9 +890,14 @@ class PreProvisionAgent(Agent):
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
             nc = next(find_networkconfig(tree), None)
+
+            vmConfigs = []
             for vm in find_vms(tree):
                 ncs = next(find_networkconnectionsection(vm), None)
- 
+                vmConfigs.append({
+                    "href": vm.attrib.get("href"),
+                    "networks": [{"href": ncs.attrib.get("href")}]})
+
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
                 headers=headers)
@@ -928,14 +933,7 @@ class PreProvisionAgent(Agent):
                     "appliance": {
                         "name": label.name,
                         "description": "FIXME: Description",
-                        "vms": [
-                                {
-                                    "href": None,
-                                    "networks": [
-                                        {"href": ncs.attrib.get("href")},
-                                    ],
-                                }
-                            ]
+                        "vms": vmConfigs,
                     },
                     "network": {
                         "interface": nc.attrib.get("networkName"),
