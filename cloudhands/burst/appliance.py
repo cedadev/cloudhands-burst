@@ -936,7 +936,8 @@ class PreProvisionAgent(Agent):
                         "vms": vmConfigs,
                     },
                     "network": {
-                        "interface": nc.attrib.get("networkName"),
+                        #"interface": nc.attrib.get("networkName"),
+                        "interface": config["vdc"]["network"],
                         "name": config["vdc"]["network"],
                         "href": netDetails.attrib.get("href"),
                     },
