@@ -896,6 +896,7 @@ class PreProvisionAgent(Agent):
                 ncs = next(find_networkconnectionsection(vm), None)
                 vmConfigs.append({
                     "href": vm.attrib.get("href"),
+                    "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
                     "networks": [{"href": ncs.attrib.get("href")}]})
 
             response = yield from client.request(
@@ -1059,18 +1060,18 @@ class ProvisioningAgent(Agent):
 
             # FIXME: End of login code
 
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                #endpoint="api/org")
-                endpoint="api/admin/orgs/query?format=references") # Integration
-            response = yield from client.request(
-                "GET", url,
-                headers=headers)
+            #url = "{scheme}://{host}:{port}/{endpoint}".format(
+            #    scheme="https",
+            #    host=config["host"]["name"],
+            #    port=config["host"]["port"],
+            #    #endpoint="api/org")
+            #    endpoint="api/admin/orgs/query?format=references") # Integration
+            #response = yield from client.request(
+            #    "GET", url,
+            #    headers=headers)
 
-            orgList = yield from response.read_and_close()
-            tree = ET.fromstring(orgList.decode("utf-8"))
+            #orgList = yield from response.read_and_close()
+            #tree = ET.fromstring(orgList.decode("utf-8"))
 
             #FIXME: choice.name
             # tmpltName = "CentOS-6.5upd-x86_64-Server"
@@ -1125,12 +1126,12 @@ class ProvisioningAgent(Agent):
                 "GET", node.uri, headers=headers)
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
+            log.debug(reply)
 
             try:
                 sectionElement = next(find_customizationsection(tree))
             except StopIteration:
                 log.error("Missing customisation script")
-                ET.dump(tree)
             else:
                 scriptElement = next(find_customizationscript(tree))
                 #scriptElement.text = xml.sax.saxutils.escape(
