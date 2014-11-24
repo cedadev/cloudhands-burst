@@ -122,6 +122,11 @@ elif [ x$1 == x"postcustomization" ]; then
 /root/post_customisation.sh
 fi
 """
+#scriptElement.text = xml.sax.saxutils.escape(
+#    customizationScript, entities={
+#        '"': "&quot;", "\n": "&#13;",
+#        "%": "&#37;", "'": "&apos;"})
+
 
 find_catalogueitems = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.vcloud.catalogItem+xml']",
@@ -1027,8 +1032,13 @@ class ProvisioningAgent(Agent):
                 (r for c in app.changes for r in c.resources),
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
-            node = next(i for i in resources if isinstance(i, Node))
-            choice = next(i for i in resources if isinstance(i, CatalogueChoice))
+            node = next((i for i in resources if isinstance(i, Node)), None)
+            choice = next((i for i in resources
+                          if isinstance(i, CatalogueChoice)), None)
+
+            if not (node and choice):
+                log.error("Missing data for new node")
+
             config = Strategy.config(node.provider.name)
 
             # FIXME: Tokens to be maintained in database. Start of login code
@@ -1060,102 +1070,34 @@ class ProvisioningAgent(Agent):
 
             # FIXME: End of login code
 
-            #url = "{scheme}://{host}:{port}/{endpoint}".format(
-            #    scheme="https",
-            #    host=config["host"]["name"],
-            #    port=config["host"]["port"],
-            #    #endpoint="api/org")
-            #    endpoint="api/admin/orgs/query?format=references") # Integration
-            #response = yield from client.request(
-            #    "GET", url,
-            #    headers=headers)
-
-            #orgList = yield from response.read_and_close()
-            #tree = ET.fromstring(orgList.decode("utf-8"))
-
-            #FIXME: choice.name
-            # tmpltName = "CentOS-6.5upd-x86_64-Server"
-            # adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
-            #
-
-            # userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
-            # orgs = (i for i in (adminOrg, userOrg) if i is not None)
-            # try:
-            #     template = yield from find_template_among_orgs(
-            #         client, headers, orgs, tmpltName)
-            # except StopIteration:
-            #     log.error("Couldn't find template {}".format(templateName))
- 
-            # response = yield from client.request(
-            #     "GET", template.get("href"),
-            #     headers=headers)
-            # reply = yield from response.read_and_close()
-            # tree = ET.fromstring(reply.decode("utf-8"))
-
-            # cs = next(find_customizationsection(tree), None)
-            # vmId = next(
-            #     (i for i in cs if i.tag.endswith("VirtualMachineId")),
-            #     None)
-
-            # data = {
-            #     "vm": {
-            #         "id": vmId.text,
-            #     },
-            # }
-
-            # macro = PageTemplateFile(pkg_resources.resource_filename(
-            #     "cloudhands.burst.drivers", "GuestCustomisationSection.pt"))
-            # url = "{}/guestCustomizationSection".format(node.uri)
-            # headers["Content-Type"] = (
-            # "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
-            # try:
-            #     payload = macro(**data)
-            #     log.debug(payload)
-            # except Exception as e:
-            #     log.error(e)
-
-            # response = yield from client.request(
-            #     "PUT", url,
-            #     headers=headers,
-            #     data=payload.encode("utf-8"))
-            # reply = yield from response.read_and_close()
-            # log.debug(reply)
-
-            url = "{}/guestCustomizationSection".format(node.uri)
             response = yield from client.request(
                 "GET", node.uri, headers=headers)
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
-            log.debug(reply)
 
             try:
                 sectionElement = next(find_customizationsection(tree))
             except StopIteration:
                 log.error("Missing customisation script")
-            else:
-                scriptElement = next(find_customizationscript(tree))
-                #scriptElement.text = xml.sax.saxutils.escape(
-                #    customizationScript, entities={
-                #        '"': "&quot;", "\n": "&#13;",
-                #        "%": "&#37;", "'": "&apos;"})
-
-                scriptElement.text = customizationScript
+           # else:
+           #     scriptElement = next(find_customizationscript(tree))
+           #     scriptElement.text = customizationScript
 
                 # Auto-logon count must be within 1 to 100 range if
                 # enabled or 0 otherwise
-                aaLCElement = next(
-                    i for i in sectionElement
-                    if i.tag.endswith("AdminAutoLogonCount"))
-                aaLCElement.text = "0"
+           #     aaLCElement = next(
+           #         i for i in sectionElement
+           #         if i.tag.endswith("AdminAutoLogonCount"))
+           #     aaLCElement.text = "0"
  
-                url = sectionElement.attrib.get("href")
-                headers["Content-Type"] = (
-                    "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
-                response = yield from client.request(
-                    "PUT", url,
-                    headers=headers,
-                    data=ET.tostring(sectionElement, encoding="utf-8"))
-                reply = yield from response.read_and_close()
+           #     url = sectionElement.attrib.get("href")
+           #     headers["Content-Type"] = (
+           #         "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
+           #     response = yield from client.request(
+           #         "PUT", url,
+           #         headers=headers,
+           #         data=ET.tostring(sectionElement, encoding="utf-8"))
+           #     reply = yield from response.read_and_close()
 
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())
