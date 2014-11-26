@@ -610,7 +610,8 @@ class ComposeVAppTests(unittest.TestCase):
                             "href": "http://cloud.io/vms/1",
                             "networks": [
                                 {"href": "http://cloud.io/networks/3"},
-                            ]
+                            ],
+                            "script": "#!/bin/sh\n",
                         },
                 ],
             },

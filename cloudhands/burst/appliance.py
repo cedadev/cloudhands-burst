@@ -115,11 +115,10 @@ __doc__ = """
 # FIXME:
 customizationScript = """#!/bin/sh
 if [ x$1 == x"precustomization" ]; then
-mkdir /root/.ssh/
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw== cl@eduserv.org.uk" >>/root/.ssh/authorized_keys
-/root/pre_customisation.sh
+echo "Precustomisation"
 elif [ x$1 == x"postcustomization" ]; then
-/root/post_customisation.sh
+mkdir /root/.ssh;
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETyppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRngamDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrqp8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw== dehaynes@snow.badc.rl.ac.uk" >> /root/.ssh/authorized_keys
 fi
 """
 #scriptElement.text = xml.sax.saxutils.escape(
@@ -760,6 +759,7 @@ class PreOperationalAgent(Agent):
                 headers=headers,
                 data=ET.tostring(eGSC, encoding="utf-8"))
             reply = yield from response.read_and_close()
+            log.debug(reply)
 
             msg = PreOperationalAgent.OperationalMessage(
                 app.uuid, datetime.datetime.utcnow(),
@@ -878,6 +878,7 @@ class PreProvisionAgent(Agent):
 
             # Integration 
             tmpltName = "CentOS-6.5upd-x86_64-Server"
+            tmpltName = "TestvApp-with-NoNetworks"
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
             #
 
@@ -896,13 +897,20 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(reply.decode("utf-8"))
             nc = next(find_networkconfig(tree), None)
 
+            script = xml.sax.saxutils.escape(
+                customizationScript, entities={
+                    '"': "&quot;", "\n": "&#13;",
+                    "%": "&#37;", "'": "&apos;"})
+            script = customizationScript
+
             vmConfigs = []
             for vm in find_vms(tree):
                 ncs = next(find_networkconnectionsection(vm), None)
                 vmConfigs.append({
                     "href": vm.attrib.get("href"),
                     "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
-                    "networks": [{"href": ncs.attrib.get("href")}]})
+                    "networks": [{"href": ncs.attrib.get("href")}],
+                    "script": script})
 
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
