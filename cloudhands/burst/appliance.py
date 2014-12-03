@@ -595,7 +595,8 @@ class PreOperationalAgent(Agent):
                              if isinstance(r, IPAddress)}
             ipTaken = {i.ip_ext for i in session.query(NATRouting).join(
                 Provider).filter(Provider.name == node.provider.name).all()}
-            if not ipPool.difference(ipTaken):
+            ipFree = ipPool.difference(ipTaken)
+            if not ipFree:
                 log.warning("No public IP Addresses available")
                 msg = PreOperationalAgent.ResourceConstrainedMessage(
                     app.uuid, datetime.datetime.utcnow(),
@@ -603,9 +604,11 @@ class PreOperationalAgent(Agent):
                 )
                 yield from msgQ.put(msg)
                 continue
+            else:
+                log.info("Allocating from {}".format(ipFree))
 
             publicIP = session.query(IPAddress).filter(
-                IPAddress.value == ipPool.pop()).first()
+                IPAddress.value == ipFree.pop()).first()
 
             # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
