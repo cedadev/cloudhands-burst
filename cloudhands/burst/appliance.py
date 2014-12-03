@@ -881,7 +881,7 @@ class PreProvisionAgent(Agent):
 
             # Integration 
             tmpltName = "CentOS-6.5upd-x86_64-Server"
-            tmpltName = "TestvApp-with-NoNetworks"
+            tmpltName = "sshbastion"
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
             #
 
