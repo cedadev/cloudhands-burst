@@ -203,8 +203,15 @@ def find_template_among_orgs(
     catalogName="UN-managed Public Catalog"
 ):
     log = logging.getLogger("cloudhands.burst.appliance.find_template_among_orgs")
-    while True:
-        org = next(orgs)
+    rv = None
+    orgs = list(orgs)
+    while rv is None:
+        try:
+            org = orgs.pop(0)
+        except IndexError:
+            break
+        else:
+            log.debug(org.attrib.get("name"))
         response = yield from client.request(
             "GET", org.attrib.get("href"),
             headers=headers)
@@ -212,6 +219,7 @@ def find_template_among_orgs(
         tree = ET.fromstring(orgData.decode("utf-8"))
 
         for catalogue in find_catalogues(tree, name=catalogName):
+            log.debug(catalogue.attrib.get("name"))
             response = yield from client.request(
                 "GET", catalogue.attrib.get("href"),
                 headers=headers)
@@ -224,8 +232,8 @@ def find_template_among_orgs(
                 catalogueItemData = yield from response.read_and_close()
                 tree = ET.fromstring(catalogueItemData.decode("utf-8"))
 
-                for template in find_templates(tree):
-                    return template
+                rv = next(find_templates(tree), None)
+    return rv
 
 
 def hosts(session, state=None):
@@ -881,17 +889,18 @@ class PreProvisionAgent(Agent):
 
             # Integration 
             tmpltName = "CentOS-6.5upd-x86_64-Server"
+            tmpltName = "TestvApp-with-NoNetworks"
             tmpltName = "sshbastion"
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
             #
 
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
             orgs = (i for i in (adminOrg, userOrg) if i is not None)
-            try:
-                template = yield from find_template_among_orgs(
-                    client, headers, orgs, tmpltName)
-            except StopIteration:
-                log.error("Couldn't find template {}".format(templateName))
+            template = yield from find_template_among_orgs(
+                client, headers, orgs, tmpltName,
+                catalogName="Managed Public Catalog")
+            if template is None:
+                log.error("Couldn't find template {}".format(tmpltName))
 
             response = yield from client.request(
                 "GET", template.get("href"),
