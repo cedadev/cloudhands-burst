@@ -115,11 +115,10 @@ __doc__ = """
 # FIXME:
 customizationScript = """#!/bin/sh
 if [ x$1 == x"precustomization" ]; then
-mkdir /root/.ssh/
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAzDpup+XwRKfAq5PtDYrsefyOFqWeAra3rONBzfdKub0Aa2imNjNFk+Q1Eeoqfn92A9bTx024EzoCg7daIswbi+ynXtzda+DT1RnpKcuOyOt3Jy8413ZOd+Ks3AovBzCQPpALiNwPu5zieCvBrd9lD4BNZo4tG6ELIv9Qv+APXPheGdDIMzwkhOf/8och4YkFGcVeYhTCjOdO3sFF8WkFmdW/OJP87RH9FBHLWMirdTz4x2tT+Cyfe47NUYCmxRkdulexy71OSIZopZONYvwx3jmradjt2Hq4JubO6wbaiUbF+bvyMJapRIPE7+f37tTSDs8W19djRf7DEz7MANprbw== cl@eduserv.org.uk" >>/root/.ssh/authorized_keys
-/root/pre_customisation.sh
+echo "Precustomisation"
 elif [ x$1 == x"postcustomization" ]; then
-/root/post_customisation.sh
+mkdir /root/.ssh;
+echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETyppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRngamDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrqp8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw== dehaynes@snow.badc.rl.ac.uk" >> /root/.ssh/authorized_keys
 fi
 """
 #scriptElement.text = xml.sax.saxutils.escape(
@@ -204,8 +203,15 @@ def find_template_among_orgs(
     catalogName="UN-managed Public Catalog"
 ):
     log = logging.getLogger("cloudhands.burst.appliance.find_template_among_orgs")
-    while True:
-        org = next(orgs)
+    rv = None
+    orgs = list(orgs)
+    while rv is None:
+        try:
+            org = orgs.pop(0)
+        except IndexError:
+            break
+        else:
+            log.debug(org.attrib.get("name"))
         response = yield from client.request(
             "GET", org.attrib.get("href"),
             headers=headers)
@@ -213,6 +219,7 @@ def find_template_among_orgs(
         tree = ET.fromstring(orgData.decode("utf-8"))
 
         for catalogue in find_catalogues(tree, name=catalogName):
+            log.debug(catalogue.attrib.get("name"))
             response = yield from client.request(
                 "GET", catalogue.attrib.get("href"),
                 headers=headers)
@@ -225,8 +232,8 @@ def find_template_among_orgs(
                 catalogueItemData = yield from response.read_and_close()
                 tree = ET.fromstring(catalogueItemData.decode("utf-8"))
 
-                for template in find_templates(tree):
-                    return template
+                rv = next(find_templates(tree), None)
+    return rv
 
 
 def hosts(session, state=None):
@@ -596,7 +603,8 @@ class PreOperationalAgent(Agent):
                              if isinstance(r, IPAddress)}
             ipTaken = {i.ip_ext for i in session.query(NATRouting).join(
                 Provider).filter(Provider.name == node.provider.name).all()}
-            if not ipPool.difference(ipTaken):
+            ipFree = ipPool.difference(ipTaken)
+            if not ipFree:
                 log.warning("No public IP Addresses available")
                 msg = PreOperationalAgent.ResourceConstrainedMessage(
                     app.uuid, datetime.datetime.utcnow(),
@@ -604,9 +612,11 @@ class PreOperationalAgent(Agent):
                 )
                 yield from msgQ.put(msg)
                 continue
+            else:
+                log.info("Allocating from {}".format(ipFree))
 
             publicIP = session.query(IPAddress).filter(
-                IPAddress.value == ipPool.pop()).first()
+                IPAddress.value == ipFree.pop()).first()
 
             # FIXME: Tokens to be maintained in database. Start of login code
             url = "{scheme}://{host}:{port}/{endpoint}".format(
@@ -760,6 +770,7 @@ class PreOperationalAgent(Agent):
                 headers=headers,
                 data=ET.tostring(eGSC, encoding="utf-8"))
             reply = yield from response.read_and_close()
+            log.debug(reply)
 
             msg = PreOperationalAgent.OperationalMessage(
                 app.uuid, datetime.datetime.utcnow(),
@@ -878,16 +889,18 @@ class PreProvisionAgent(Agent):
 
             # Integration 
             tmpltName = "CentOS-6.5upd-x86_64-Server"
+            tmpltName = "TestvApp-with-NoNetworks"
+            tmpltName = "sshbastion"
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
             #
 
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
             orgs = (i for i in (adminOrg, userOrg) if i is not None)
-            try:
-                template = yield from find_template_among_orgs(
-                    client, headers, orgs, tmpltName)
-            except StopIteration:
-                log.error("Couldn't find template {}".format(templateName))
+            template = yield from find_template_among_orgs(
+                client, headers, orgs, tmpltName,
+                catalogName="Managed Public Catalog")
+            if template is None:
+                log.error("Couldn't find template {}".format(tmpltName))
 
             response = yield from client.request(
                 "GET", template.get("href"),
@@ -896,13 +909,20 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(reply.decode("utf-8"))
             nc = next(find_networkconfig(tree), None)
 
+            script = xml.sax.saxutils.escape(
+                customizationScript, entities={
+                    '"': "&quot;", "\n": "&#13;",
+                    "%": "&#37;", "'": "&apos;"})
+            script = customizationScript
+
             vmConfigs = []
             for vm in find_vms(tree):
                 ncs = next(find_networkconnectionsection(vm), None)
                 vmConfigs.append({
                     "href": vm.attrib.get("href"),
                     "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
-                    "networks": [{"href": ncs.attrib.get("href")}]})
+                    "networks": [{"href": ncs.attrib.get("href")}],
+                    "script": script})
 
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
