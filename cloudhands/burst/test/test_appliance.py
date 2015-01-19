@@ -84,6 +84,7 @@ class AgentTesting(unittest.TestCase):
                 description="Apache server VM",
                 note=None,
                 logo=None,
+                natrouted=True,
                 organisation=org,
             ),
             CatalogueItem(
@@ -92,6 +93,7 @@ class AgentTesting(unittest.TestCase):
                 description="OpenSSH server VM",
                 note=None,
                 logo=None,
+                natrouted=False,
                 organisation=org,
             )
         ))
