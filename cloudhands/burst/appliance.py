@@ -26,6 +26,7 @@ from cloudhands.burst.control import destroy_node
 from cloudhands.burst.utils import find_xpath
 from cloudhands.burst.utils import unescape_script
 from cloudhands.common.discovery import providers
+from cloudhands.common.discovery import settings
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import Component
@@ -117,8 +118,8 @@ customizationScript = """#!/bin/sh
 if [ x$1 == x"precustomization" ]; then
 echo "Precustomisation"
 elif [ x$1 == x"postcustomization" ]; then
-mkdir /root/.ssh;
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETyppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRngamDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrqp8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw== dehaynes@snow.badc.rl.ac.uk" >> /root/.ssh/authorized_keys
+echo "Postcustomisation"
+/usr/local/bin/activator.sh {host}/appliance/{uuid}
 fi
 """
 #scriptElement.text = xml.sax.saxutils.escape(
@@ -416,7 +417,7 @@ class PreCheckAgent(Agent):
                         log.error(e)
 
                 script = unescape_script(scriptElement.text).splitlines()
-                if len(script) > 6:
+                if len(script) > 5:
                     # Customisation script is in place
                     messageType = (PreCheckAgent.CheckedAsOperational if any(
                         i for i in resources
@@ -845,6 +846,7 @@ class PreProvisionAgent(Agent):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        portalName, portal = next(iter(settings.items()))
         macro = PageTemplateFile(pkg_resources.resource_filename(
             "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
         macro = PageTemplateFile(pkg_resources.resource_filename(
@@ -934,7 +936,9 @@ class PreProvisionAgent(Agent):
                 customizationScript, entities={
                     '"': "&quot;", "\n": "&#13;",
                     "%": "&#37;", "'": "&apos;"})
-            script = customizationScript
+            script = customizationScript.format(
+                host=portal["auth.rest"]["host"],
+                uuid=app.uuid)
 
             vmConfigs = []
             for vm in find_vms(tree):
@@ -1119,7 +1123,7 @@ class ProvisioningAgent(Agent):
             try:
                 sectionElement = next(find_customizationsection(tree))
             except StopIteration:
-                log.error("Missing customisation script")
+                log.warning("Missing customisation script")
            # else:
            #     scriptElement = next(find_customizationscript(tree))
            #     scriptElement.text = customizationScript
