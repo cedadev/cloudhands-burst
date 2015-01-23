@@ -914,10 +914,12 @@ class PreProvisionAgent(Agent):
             tmpltName = "sshbastion"
             #
 
+            # TODO: admin org name from config
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
 
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
             orgs = (i for i in (adminOrg, userOrg) if i is not None)
+            # TODO: catalogName from config
             template = yield from find_template_among_orgs(
                 client, headers, orgs, image,
                 catalogName="Managed Public Catalog")
