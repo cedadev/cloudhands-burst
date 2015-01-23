@@ -26,6 +26,7 @@ from cloudhands.burst.control import destroy_node
 from cloudhands.burst.utils import find_xpath
 from cloudhands.burst.utils import unescape_script
 from cloudhands.common.discovery import providers
+from cloudhands.common.discovery import settings
 from cloudhands.common.schema import Appliance
 from cloudhands.common.schema import CatalogueChoice
 from cloudhands.common.schema import Component
@@ -117,8 +118,8 @@ customizationScript = """#!/bin/sh
 if [ x$1 == x"precustomization" ]; then
 echo "Precustomisation"
 elif [ x$1 == x"postcustomization" ]; then
-mkdir /root/.ssh;
-echo "ssh-rsa AAAAB3NzaC1yc2EAAAABIwAAAQEAuOg/gIR9szQ0IcPjqD1jlY9enJETyppW39MAH0WV1LqR+/ULulG4uBUS/HBwvS7ggu3P6mj4i2hH9Kz9JGwnkuhxMJu3d/b/2Z7/1hBkQls5BKTzSoYnPCVYfvPyNXzRHEcRPjyfGcrIYz2CU4g5Ei2f0IgRngamDQrTU33QLosoaJqfw0pvX2SdFyFRmJkY6vH7j66ciXl2bfUUdf1KaoadkD+n59U6EiURrholSlaZp0gECjx0dM4mZUD0DqjWGll0NmnM4NIpCl+lTOrFLicJBgPuAnsrqp8HjGEHweRoPwFkKpcPkfyV+k0o/bltu3Lyd8KLJrVzYAUXRnLRpw== dehaynes@snow.badc.rl.ac.uk" >> /root/.ssh/authorized_keys
+echo "Postcustomisation"
+/usr/local/bin/activator.sh {host}/appliance/{uuid}
 fi
 """
 #scriptElement.text = xml.sax.saxutils.escape(
@@ -400,7 +401,8 @@ class PreCheckAgent(Agent):
             try:
                 scriptElement = next(find_customizationscript(tree))
             except StopIteration:
-                log.error("Missing customisation script")
+                # Not necessarily an error; possibly still provisioning
+                log.warning("Missing customisation script")
             else:
                 try:
                     nc = next(find_networkconnection(tree))
@@ -415,7 +417,7 @@ class PreCheckAgent(Agent):
                         log.error(e)
 
                 script = unescape_script(scriptElement.text).splitlines()
-                if len(script) > 6:
+                if len(script) > 5:
                     # Customisation script is in place
                     messageType = (PreCheckAgent.CheckedAsOperational if any(
                         i for i in resources
@@ -547,10 +549,15 @@ class PreOperationalAgent(Agent):
         provider = session.query(Provider).filter(
             Provider.name==msg.provider).one()
         act = Touch(artifact=app, actor=actor, state=operational, at=msg.ts)
-        resource = NATRouting(
-            touch=act, provider=provider,
-            ip_int=msg.ip_internal, ip_ext=msg.ip_external)
-        session.add(resource)
+
+        if msg.ip_internal and msg.ip_external:
+            resource = NATRouting(
+                touch=act, provider=provider,
+                ip_int=msg.ip_internal, ip_ext=msg.ip_external)
+            session.add(resource)
+        else:
+            session.add(act)
+
         session.commit()
         return act
 
@@ -584,10 +591,23 @@ class PreOperationalAgent(Agent):
                 (r for c in app.changes for r in c.resources),
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
+            choice = next(i for i in resources if isinstance(i, CatalogueChoice))
             node = next(i for i in resources if isinstance(i, Node))
             config = Strategy.config(node.provider.name)
             network = config.get("vdc", "network", fallback=None)
 
+            if not choice.natrouted:
+                log.info("No rules applied for {} {}".format(
+                    choice.name, app.uuid))
+                msg = PreOperationalAgent.OperationalMessage(
+                    app.uuid, datetime.datetime.utcnow(),
+                    node.provider.name,
+                    None, None
+                )
+                yield from msgQ.put(msg)
+                continue
+
+            log.info("Applying rules for {} {}".format(choice.name, app.uuid))
             try:
                 privateIP = next(
                     i for i in resources if isinstance(i, IPAddress))
@@ -826,6 +846,7 @@ class PreProvisionAgent(Agent):
         log = logging.getLogger("cloudhands.burst.appliance.preprovision")
         log.info("Activated.")
         ET.register_namespace("", "http://www.vmware.com/vcloud/v1.5")
+        portalName, portal = next(iter(settings.items()))
         macro = PageTemplateFile(pkg_resources.resource_filename(
             "cloudhands.burst.drivers", "InstantiateVAppTemplateParams.pt"))
         macro = PageTemplateFile(pkg_resources.resource_filename(
@@ -887,20 +908,23 @@ class PreProvisionAgent(Agent):
             orgList = yield from response.read_and_close()
             tree = ET.fromstring(orgList.decode("utf-8"))
 
-            # Integration 
+            # DELETE: Integration 
             tmpltName = "CentOS-6.5upd-x86_64-Server"
             tmpltName = "TestvApp-with-NoNetworks"
             tmpltName = "sshbastion"
-            adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
             #
+
+            # TODO: admin org name from config
+            adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
 
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
             orgs = (i for i in (adminOrg, userOrg) if i is not None)
+            # TODO: catalogName from config
             template = yield from find_template_among_orgs(
-                client, headers, orgs, tmpltName,
+                client, headers, orgs, image,
                 catalogName="Managed Public Catalog")
             if template is None:
-                log.error("Couldn't find template {}".format(tmpltName))
+                log.error("Couldn't find template {}".format(image))
 
             response = yield from client.request(
                 "GET", template.get("href"),
@@ -909,11 +933,14 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(reply.decode("utf-8"))
             nc = next(find_networkconfig(tree), None)
 
+            # FIXME
             script = xml.sax.saxutils.escape(
                 customizationScript, entities={
                     '"': "&quot;", "\n": "&#13;",
                     "%": "&#37;", "'": "&apos;"})
-            script = customizationScript
+            script = customizationScript.format(
+                host=portal["auth.rest"]["host"],
+                uuid=app.uuid)
 
             vmConfigs = []
             for vm in find_vms(tree):
@@ -1098,7 +1125,7 @@ class ProvisioningAgent(Agent):
             try:
                 sectionElement = next(find_customizationsection(tree))
             except StopIteration:
-                log.error("Missing customisation script")
+                log.warning("Missing customisation script")
            # else:
            #     scriptElement = next(find_customizationscript(tree))
            #     scriptElement.text = customizationScript

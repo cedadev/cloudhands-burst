@@ -6,8 +6,8 @@
     <Protocols>
         <Tcp>true</Tcp>
     </Protocols>
-    <Port>22</Port>
-    <DestinationPortRange>22</DestinationPortRange>
+    <Port>-1</Port>
+    <DestinationPortRange>Any</DestinationPortRange>
     <DestinationIp tal:content="rule.rx if typ == 'DNAT' else rule.tx"></DestinationIp>
     <SourcePort>-1</SourcePort>
     <SourcePortRange>Any</SourcePortRange>
