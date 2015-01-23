@@ -8,9 +8,9 @@ name network.name;
 type 'application/vnd.vmware.admin.network+xml';
 " />
      <OriginalIp tal:content="rule.rx"></OriginalIp>
-     <OriginalPort tal:condition="typ == 'DNAT'">22</OriginalPort>
+     <OriginalPort tal:condition="typ == 'DNAT'">any</OriginalPort>
      <TranslatedIp tal:content="rule.tx"></TranslatedIp>
-     <TranslatedPort tal:condition="typ == 'DNAT'">22</TranslatedPort>
+     <TranslatedPort tal:condition="typ == 'DNAT'">any</TranslatedPort>
      <Protocol>tcp</Protocol>
   </GatewayNatRule>
 </NatRule>
