@@ -103,13 +103,17 @@ class AgentTesting(unittest.TestCase):
             RegistrationState).filter(
             RegistrationState.name == "valid").one()
 
-        now = datetime.datetime.utcnow()
-        act = Touch(artifact=reg, actor=user, state=valid, at=now)
-        token = ProviderToken(
-            touch=act, provider=prvdr,
-            key="T-Auth", value="abcdefghijklmnopqrstuvwxyz")
+        for val in (
+            "expiredexpiredexpiredexpired",
+            "validvalidvalidvalidvalidval"
+        ):
+            now = datetime.datetime.utcnow()
+            act = Touch(artifact=reg, actor=user, state=valid, at=now)
+            token = ProviderToken(
+                touch=act, provider=prvdr,
+                key="T-Auth", value=val)
+            session.add(token)
 
-        session.add(token)
         session.commit()
 
     def tearDown(self):
@@ -450,7 +454,7 @@ class PreProvisionAgentTesting(AgentTesting):
             asyncio.Queue
         )
 
-    def test_job_query_and_transmit(self):
+    def setup_appliance(self):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
@@ -538,10 +542,19 @@ class PreProvisionAgentTesting(AgentTesting):
 
         q.put_nowait(jobs[0])
         self.assertEqual(1, q.qsize())
+        return q
 
+    def test_job_query_and_transmit(self):
+        q = self.setup_appliance()
         job = q.get_nowait()
         self.assertEqual(4, len(job.artifact.changes))
         self.assertEqual(3, len(job.token))
+        return q
+
+    def test_job_has_latest_creds(self):
+        q = self.setup_appliance()
+        job = q.get_nowait()
+        self.assertIn("valid", job.token[2])
 
     def test_msg_dispatch_and_touch(self):
         session = Registry().connect(sqlite3, ":memory:").session
