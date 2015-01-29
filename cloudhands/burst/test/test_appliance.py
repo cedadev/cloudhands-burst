@@ -239,7 +239,7 @@ class PreCheckAgentTesting(AgentTesting):
 
         q = PreCheckAgent.queue(None, None, loop=None)
         agent = PreCheckAgent(q, args=None, config=None)
-        jobs = agent.jobs(session)
+        jobs = list(agent.jobs(session))
         self.assertEqual(1, len(jobs))
 
         q.put_nowait(jobs[0])
@@ -705,7 +705,7 @@ class ProvisioningAgentTesting(AgentTesting):
 
         q = ProvisioningAgent.queue(None, None, loop=None)
         agent = ProvisioningAgent(q, args=None, config=None)
-        jobs = agent.jobs(session)
+        jobs = list(agent.jobs(session))
         self.assertEqual(1, len(jobs))
         self.assertEqual(apps[0].uuid, jobs[0].uuid)
 

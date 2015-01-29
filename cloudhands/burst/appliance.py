@@ -284,9 +284,17 @@ class PreCheckAgent(Agent):
         ]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_check"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_check":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_operational(self, msg:CheckedAsOperational, session):
         operational = session.query(ApplianceState).filter(
@@ -445,9 +453,17 @@ class PreDeleteAgent(Agent):
         return [(PreDeleteAgent.Message, self.touch_to_deleted)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_delete"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_delete":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_deleted(self, msg:Message, session):
         deleted = session.query(ApplianceState).filter(
@@ -535,9 +551,17 @@ class PreOperationalAgent(Agent):
         ]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_operational"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_operational":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_operational(self, msg:OperationalMessage, session):
         operational = session.query(ApplianceState).filter(
@@ -1048,9 +1072,17 @@ class ProvisioningAgent(Agent):
         # TODO: get token (need user registration ProviderToken)
         now = datetime.datetime.utcnow()
         then = now - datetime.timedelta(seconds=20)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "provisioning"
-                and i.changes[-1].at < then]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "provisioning" and acts[-1].at < then:
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_precheck(self, msg:Message, session):
         precheck = session.query(ApplianceState).filter(
@@ -1159,9 +1191,17 @@ class PreStartAgent(Agent):
         return [(PreStartAgent.Message, self.touch_to_running)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_start"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_start":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_running(self, msg:Message, session):
         running = session.query(ApplianceState).filter(
@@ -1254,9 +1294,17 @@ class PreStopAgent(Agent):
         return [(PreStopAgent.Message, self.touch_to_stopped)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_stop"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_stop":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_stopped(self, msg:Message, session):
         stopped = session.query(ApplianceState).filter(
