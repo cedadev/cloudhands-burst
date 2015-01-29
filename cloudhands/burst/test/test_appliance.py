@@ -142,7 +142,7 @@ class PreCheckAgentTesting(AgentTesting):
             message_handler.dispatch(PreCheckAgent.CheckedAsProvisioning)
         )
 
-    def test_job_query_and_transmit(self):
+    def setup_appliance_check(self):
         session = Registry().connect(sqlite3, ":memory:").session
 
         # 0. Set up User
@@ -244,9 +244,18 @@ class PreCheckAgentTesting(AgentTesting):
 
         q.put_nowait(jobs[0])
         self.assertEqual(1, q.qsize())
+        return q
 
+    def test_job_query_and_transmit(self):
+        q = self.setup_appliance_check()
         job = q.get_nowait()
         self.assertEqual(5, len(job.artifact.changes))
+        self.assertEqual(3, len(job.token))
+
+    def test_job_has_latest_creds(self):
+        q = self.setup_appliance_check()
+        job = q.get_nowait()
+        self.assertIn("valid", job.token[2])
 
     def test_queue_creation(self):
         self.assertIsInstance(

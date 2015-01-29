@@ -810,8 +810,6 @@ class PreProvisionAgent(Agent):
         return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
 
     def jobs(self, session):
-        #return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-        #        if i.changes[-1].state.name == "pre_provision"]
         for app in session.query(Appliance).all():  # TODO: Filter earlier
             acts = app.changes
             if acts[-1].state.name == "pre_provision":
