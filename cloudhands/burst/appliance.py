@@ -113,7 +113,6 @@ __doc__ = """
    }
 """
 
-# FIXME:
 customizationScript = """#!/bin/sh
 if [ x$1 == x"precustomization" ]; then
 echo "Precustomisation"
@@ -122,11 +121,6 @@ echo "Postcustomisation"
 /usr/local/bin/activator.sh {host}/appliance/{uuid}
 fi
 """
-#scriptElement.text = xml.sax.saxutils.escape(
-#    customizationScript, entities={
-#        '"': "&quot;", "\n": "&#13;",
-#        "%": "&#37;", "'": "&apos;"})
-
 
 find_catalogueitems = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.vcloud.catalogItem+xml']",
@@ -284,9 +278,17 @@ class PreCheckAgent(Agent):
         ]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_check"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_check":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_operational(self, msg:CheckedAsOperational, session):
         operational = session.query(ApplianceState).filter(
@@ -360,16 +362,13 @@ class PreCheckAgent(Agent):
             log.debug(node)
             config = Strategy.config(node.provider.name)
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
             headers = {
                 "Accept": "application/*+xml;version=5.5",
             }
+            try:
+                headers[job.token[1]] = job.token[2]
+            except (TypeError, IndexError):
+                log.warning("No token supplied")
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
@@ -378,17 +377,6 @@ class PreCheckAgent(Agent):
                 ],
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
-
-            response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-
-
-            # FIXME: End of login code
-
             response = yield from client.request(
                 "GET", node.uri, headers=headers)
 
@@ -445,9 +433,17 @@ class PreDeleteAgent(Agent):
         return [(PreDeleteAgent.Message, self.touch_to_deleted)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_delete"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_delete":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_deleted(self, msg:Message, session):
         deleted = session.query(ApplianceState).filter(
@@ -478,16 +474,13 @@ class PreDeleteAgent(Agent):
             node = next(i for i in resources if isinstance(i, Node))
             config = Strategy.config(node.provider.name)
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
             headers = {
                 "Accept": "application/*+xml;version=5.5",
             }
+            try:
+                headers[job.token[1]] = job.token[2]
+            except (TypeError, IndexError):
+                log.warning("No token supplied")
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
@@ -496,14 +489,6 @@ class PreDeleteAgent(Agent):
                 ],
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
-
-            response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-            # FIXME: End of login code
 
             response = yield from client.request(
                 "DELETE", node.uri,
@@ -535,9 +520,17 @@ class PreOperationalAgent(Agent):
         ]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_operational"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_operational":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_operational(self, msg:OperationalMessage, session):
         operational = session.query(ApplianceState).filter(
@@ -638,16 +631,13 @@ class PreOperationalAgent(Agent):
             publicIP = session.query(IPAddress).filter(
                 IPAddress.value == ipFree.pop()).first()
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
             headers = {
                 "Accept": "application/*+xml;version=5.5",
             }
+            try:
+                headers[job.token[1]] = job.token[2]
+            except (TypeError, IndexError):
+                log.warning("No token supplied")
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
@@ -656,18 +646,6 @@ class PreOperationalAgent(Agent):
                 ],
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
-
-            response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-                #connector=connector)
-                #request_class=requestClass)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-
-
-            # FIXME: End of login code
 
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
@@ -810,8 +788,6 @@ class PreProvisionAgent(Agent):
         return [(PreProvisionAgent.Message, self.touch_to_provisioning)]
 
     def jobs(self, session):
-        #return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-        #        if i.changes[-1].state.name == "pre_provision"]
         for app in session.query(Appliance).all():  # TODO: Filter earlier
             acts = app.changes
             if acts[-1].state.name == "pre_provision":
@@ -864,16 +840,13 @@ class PreProvisionAgent(Agent):
             config = Strategy.recommend(app)
             network = config.get("vdc", "network", fallback=None)
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
             headers = {
                 "Accept": "application/*+xml;version=5.5",
             }
+            try:
+                headers[job.token[1]] = job.token[2]
+            except (TypeError, IndexError):
+                log.warning("No token supplied")
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
@@ -882,18 +855,6 @@ class PreProvisionAgent(Agent):
                 ],
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
-
-            response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-                #connector=connector)
-                #request_class=requestClass)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-
-
-            # FIXME: End of login code
 
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
@@ -907,12 +868,6 @@ class PreProvisionAgent(Agent):
 
             orgList = yield from response.read_and_close()
             tree = ET.fromstring(orgList.decode("utf-8"))
-
-            # DELETE: Integration 
-            tmpltName = "CentOS-6.5upd-x86_64-Server"
-            tmpltName = "TestvApp-with-NoNetworks"
-            tmpltName = "sshbastion"
-            #
 
             # TODO: admin org name from config
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
@@ -933,11 +888,6 @@ class PreProvisionAgent(Agent):
             tree = ET.fromstring(reply.decode("utf-8"))
             nc = next(find_networkconfig(tree), None)
 
-            # FIXME
-            script = xml.sax.saxutils.escape(
-                customizationScript, entities={
-                    '"': "&quot;", "\n": "&#13;",
-                    "%": "&#37;", "'": "&apos;"})
             script = customizationScript.format(
                 host=portal["auth.rest"]["host"],
                 uuid=app.uuid)
@@ -1050,9 +1000,17 @@ class ProvisioningAgent(Agent):
         # TODO: get token (need user registration ProviderToken)
         now = datetime.datetime.utcnow()
         then = now - datetime.timedelta(seconds=20)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "provisioning"
-                and i.changes[-1].at < then]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "provisioning" and acts[-1].at < then:
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_precheck(self, msg:Message, session):
         precheck = session.query(ApplianceState).filter(
@@ -1088,16 +1046,13 @@ class ProvisioningAgent(Agent):
 
             config = Strategy.config(node.provider.name)
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
             headers = {
                 "Accept": "application/*+xml;version=5.5",
             }
+            try:
+                headers[job.token[1]] = job.token[2]
+            except (TypeError, IndexError):
+                log.warning("No token supplied")
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
@@ -1108,16 +1063,6 @@ class ProvisioningAgent(Agent):
             )
 
             response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-
-
-            # FIXME: End of login code
-
-            response = yield from client.request(
                 "GET", node.uri, headers=headers)
             reply = yield from response.read_and_close()
             tree = ET.fromstring(reply.decode("utf-8"))
@@ -1126,25 +1071,6 @@ class ProvisioningAgent(Agent):
                 sectionElement = next(find_customizationsection(tree))
             except StopIteration:
                 log.warning("Missing customisation script")
-           # else:
-           #     scriptElement = next(find_customizationscript(tree))
-           #     scriptElement.text = customizationScript
-
-                # Auto-logon count must be within 1 to 100 range if
-                # enabled or 0 otherwise
-           #     aaLCElement = next(
-           #         i for i in sectionElement
-           #         if i.tag.endswith("AdminAutoLogonCount"))
-           #     aaLCElement.text = "0"
- 
-           #     url = sectionElement.attrib.get("href")
-           #     headers["Content-Type"] = (
-           #         "application/vnd.vmware.vcloud.guestCustomizationSection+xml")
-           #     response = yield from client.request(
-           #         "PUT", url,
-           #         headers=headers,
-           #         data=ET.tostring(sectionElement, encoding="utf-8"))
-           #     reply = yield from response.read_and_close()
 
             msg = ProvisioningAgent.Message(
                 job.uuid, datetime.datetime.utcnow())
@@ -1161,9 +1087,17 @@ class PreStartAgent(Agent):
         return [(PreStartAgent.Message, self.touch_to_running)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_start"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_start":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_running(self, msg:Message, session):
         running = session.query(ApplianceState).filter(
@@ -1195,16 +1129,13 @@ class PreStartAgent(Agent):
                 node = next(i for i in resources if isinstance(i, Node))
                 config = Strategy.config(node.provider.name)
 
-                # FIXME: Tokens to be maintained in database. Start of login code
-                url = "{scheme}://{host}:{port}/{endpoint}".format(
-                    scheme="https",
-                    host=config["host"]["name"],
-                    port=config["host"]["port"],
-                    endpoint="api/sessions")
-
                 headers = {
                     "Accept": "application/*+xml;version=5.5",
                 }
+                try:
+                    headers[job.token[1]] = job.token[2]
+                except (TypeError, IndexError):
+                    log.warning("No token supplied")
 
                 client = aiohttp.client.HttpClient(
                     ["{host}:{port}".format(
@@ -1213,14 +1144,6 @@ class PreStartAgent(Agent):
                     ],
                     verify_ssl=config["host"].getboolean("verify_ssl_cert")
                 )
-
-                response = yield from client.request(
-                    "POST", url,
-                    auth=(config["user"]["name"], config["user"]["pass"]),
-                    headers=headers)
-                headers["x-vcloud-authorization"] = response.headers.get(
-                    "x-vcloud-authorization")
-                # FIXME: End of login code
 
                 deploy = textwrap.dedent("""
                 <DeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5"
@@ -1256,9 +1179,17 @@ class PreStopAgent(Agent):
         return [(PreStopAgent.Message, self.touch_to_stopped)]
 
     def jobs(self, session):
-        # TODO: get token (need user registration ProviderToken)
-        return [Job(i.uuid, None, i) for i in session.query(Appliance).all()
-                if i.changes[-1].state.name == "pre_stop"]
+        for app in session.query(Appliance).all():  # TODO: Filter earlier
+            acts = app.changes
+            if acts[-1].state.name == "pre_stop":
+                prvdrName = app.organisation.subscriptions[0].provider.name
+                token = session.query(ProviderToken).join(Touch).join(
+                    Provider).filter(Touch.actor == acts[0].actor).filter(
+                    Provider.name == prvdrName).order_by(
+                    desc(Touch.at)).first()
+                creds = (prvdrName, token.key, token.value) if token else None
+                    
+                yield Job(app.uuid, creds, app)
 
     def touch_to_stopped(self, msg:Message, session):
         stopped = session.query(ApplianceState).filter(
@@ -1289,16 +1220,13 @@ class PreStopAgent(Agent):
             node = next(i for i in resources if isinstance(i, Node))
             config = Strategy.config(node.provider.name)
 
-            # FIXME: Tokens to be maintained in database. Start of login code
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/sessions")
-
             headers = {
                 "Accept": "application/*+xml;version=5.5",
             }
+            try:
+                headers[job.token[1]] = job.token[2]
+            except (TypeError, IndexError):
+                log.warning("No token supplied")
 
             client = aiohttp.client.HttpClient(
                 ["{host}:{port}".format(
@@ -1307,14 +1235,6 @@ class PreStopAgent(Agent):
                 ],
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
-
-            response = yield from client.request(
-                "POST", url,
-                auth=(config["user"]["name"], config["user"]["pass"]),
-                headers=headers)
-            headers["x-vcloud-authorization"] = response.headers.get(
-                "x-vcloud-authorization")
-            # FIXME: End of login code
 
             unDeploy = textwrap.dedent("""
             <UndeployVAppParams xmlns="http://www.vmware.com/vcloud/v1.5">
