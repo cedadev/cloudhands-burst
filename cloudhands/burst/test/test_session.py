@@ -96,7 +96,7 @@ class SessionAgentTesting(AgentTesting):
         session.add(act)
         session.commit()
 
-        self.assertEqual(1, session.query(ProviderToken).count())
+        self.assertEqual(2, session.query(ProviderToken).count())
 
         with tempfile.TemporaryDirectory() as td:
             path = os.path.join(td, "test.fifo")
@@ -113,7 +113,7 @@ class SessionAgentTesting(AgentTesting):
             rv = message_handler(msg, session)
 
             self.assertIsInstance(rv, Touch)
-            self.assertEqual(2, session.query(ProviderToken).count())
+            self.assertEqual(3, session.query(ProviderToken).count())
             q.close()
 
     def tost_operational_msg_dispatch_and_touch(self):
