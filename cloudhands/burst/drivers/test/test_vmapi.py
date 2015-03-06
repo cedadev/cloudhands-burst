@@ -139,17 +139,15 @@ size="big" />
 
 xml_queryresultrecords_catalog = """
 <QueryResultRecords total="2" pageSize="25" page="1" name="catalog"
-type="application/vnd.vmware.vcloud.query.records+xml" href=
-"https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=records"
+type="application/vnd.vmware.vcloud.query.records+xml"
+href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=records"
 xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
 http://vcloud-ref.ceda.ac.uk/api/v1.5/schema/master.xsd">
 <Link rel="alternate" type="application/vnd.vmware.vcloud.query.references+xml"
-href=
-"https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=references"
+href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=references"
 />
 <Link rel="alternate" type="application/vnd.vmware.vcloud.query.idrecords+xml"
-href=
-"https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=idrecords"
+href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=idrecords"
 />
 <CatalogRecord ownerName="system"
 owner="https://vcloud-ref.ceda.ac.uk/api/admin/user/b1218b2a-a4ec-44f8-9753-3fa2adb7d402"
@@ -554,6 +552,12 @@ class XMLTests(unittest.TestCase):
 
     def test_gateway_queryresultrecords_by_name(self):
         tree = ET.fromstring(xml_queryresultrecords_gateway)
+        self.assertEqual(
+            1, len(list(find_results(
+                tree, name="jasmin-priv-external-network"))))
+
+    def test_catalog_queryresultrecords_by_name(self):
+        tree = ET.fromstring(xml_queryresultrecords_catalog)
         self.assertEqual(
             1, len(list(find_results(
                 tree, name="jasmin-priv-external-network"))))
