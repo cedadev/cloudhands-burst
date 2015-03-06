@@ -193,6 +193,23 @@ find_vms = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.vcloud.vm+xml']")
 
 @asyncio.coroutine
+def find_template_among_catalogues(
+    client, headers, templateName, catalogueNames
+):
+    log = logging.getLogger(
+        "cloudhands.burst.appliance.find_template_among_catalogues")
+    rv = None
+    log.debug(rv)
+    pass
+    while rv is None:
+        try:
+            org = orgs.pop(0)
+        except IndexError:
+            break
+        else:
+            log.debug(org.attrib.get("name"))
+
+@asyncio.coroutine
 def find_template_among_orgs(
     client, headers, orgs, templateName,
     catalogName="UN-managed Public Catalog"
@@ -866,15 +883,31 @@ class PreProvisionAgent(Agent):
                 "GET", url,
                 headers=headers)
 
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/query?type=catalog")
+            response = yield from client.request(
+                "GET", url, headers=headers)
+            data = yield from response.read_and_close()
+            tree = ET.fromstring(data.decode("utf-8"))
+
+            template = yield from find_template_among_catalogues(
+                client, headers, image, catalogueNames=[
+                    config["vdc"]["org"],
+                    config["vdc"]["catalogue"]
+                ]
+            )
+
+            # FIXME: Requires admin permissions
             orgList = yield from response.read_and_close()
             tree = ET.fromstring(orgList.decode("utf-8"))
 
-            # TODO: admin org name from config
             adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
 
             userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
             orgs = (i for i in (adminOrg, userOrg) if i is not None)
-            # TODO: catalogName from config
             template = yield from find_template_among_orgs(
                 client, headers, orgs, image,
                 catalogName="Managed Public Catalog")
