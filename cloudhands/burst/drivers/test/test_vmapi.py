@@ -140,28 +140,22 @@ size="big" />
 xml_queryresultrecords_catalog = """
 <QueryResultRecords total="2" pageSize="25" page="1" name="catalog"
 type="application/vnd.vmware.vcloud.query.records+xml"
-href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=records"
-xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5
-http://vcloud-ref.ceda.ac.uk/api/v1.5/schema/master.xsd">
-<Link rel="alternate" type="application/vnd.vmware.vcloud.query.references+xml"
-href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=references"
-/>
-<Link rel="alternate" type="application/vnd.vmware.vcloud.query.idrecords+xml"
-href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=idrecords"
-/>
+href="https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&amp;pageSize=25&amp;format=records" xsi:schemaLocation="http://www.vmware.com/vcloud/v1.5 http://vcloud-ref.ceda.ac.uk/api/v1.5/schema/master.xsd">
+<Link rel="alternate" type="application/vnd.vmware.vcloud.query.references+xml" href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=references" />
+<Link rel="alternate" type="application/vnd.vmware.vcloud.query.idrecords+xml" href= "https://vcloud-ref.ceda.ac.uk/api/catalogs/query?page=1&pageSize=25&format=idrecords" />
 <CatalogRecord ownerName="system"
 owner="https://vcloud-ref.ceda.ac.uk/api/admin/user/b1218b2a-a4ec-44f8-9753-3fa2adb7d402"
 orgName="STFC-Administrator" numberOfVAppTemplates="2" numberOfMedia="0"
 name="Managed Public Catalog" isShared="true" isPublished="false"
-creationDate="2014-09-25T11:09:50.087+01:00" href=
-"https://vcloud-ref.ceda.ac.uk/api/catalog/9a426f11-f3c0-43c8-8185-bdac3d41e2ff"
+creationDate="2014-09-25T11:09:50.087+01:00"
+href="https://vcloud-ref.ceda.ac.uk/api/catalog/9a426f11-f3c0-43c8-8185-bdac3d41e2ff"
 />
 <CatalogRecord ownerName="system"
 owner="https://vcloud-ref.ceda.ac.uk/api/admin/user/6a416b8d-4056-4598-ae75-9ebeae846b4b"
 orgName="stfc-managed-M" numberOfVAppTemplates="0" numberOfMedia="0"
 name="stfc-managed-M" isShared="false" isPublished="false"
-creationDate="2015-03-05T10:22:14.513Z" href=
-"https://vcloud-ref.ceda.ac.uk/api/catalog/a9231220-8f38-42eb-b3e1-0aa5502c83ca"
+creationDate="2015-03-05T10:22:14.513Z"
+href="https://vcloud-ref.ceda.ac.uk/api/catalog/a9231220-8f38-42eb-b3e1-0aa5502c83ca"
 />
 </QueryResultRecords>
 """
@@ -557,7 +551,13 @@ class XMLTests(unittest.TestCase):
                 tree, name="jasmin-priv-external-network"))))
 
     def test_catalog_queryresultrecords_by_name(self):
-        tree = ET.fromstring(xml_queryresultrecords_catalog)
+        import re
+        records = re.findall("<CatalogRecord[^>]+>", xml_queryresultrecords_catalog)
+        print(records)
+
+        for r in records:
+            tree = ET.fromstring(r)
+            print(tree.get("name"), tree.get("href"))
         self.assertEqual(
             1, len(list(find_results(
                 tree, name="jasmin-priv-external-network"))))
