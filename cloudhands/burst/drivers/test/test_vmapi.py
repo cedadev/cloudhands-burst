@@ -9,6 +9,7 @@ from chameleon import PageTemplateFile
 import pkg_resources
 
 from cloudhands.burst.appliance import find_catalogueitems
+from cloudhands.burst.appliance import find_catalogrecords
 from cloudhands.burst.appliance import find_customizationscript
 from cloudhands.burst.appliance import find_ipranges
 from cloudhands.burst.appliance import find_networkconnection
@@ -551,16 +552,10 @@ class XMLTests(unittest.TestCase):
                 tree, name="jasmin-priv-external-network"))))
 
     def test_catalog_queryresultrecords_by_name(self):
-        import re
-        records = re.findall("<CatalogRecord[^>]+>", xml_queryresultrecords_catalog)
-        print(records)
-
-        for r in records:
-            tree = ET.fromstring(r)
-            print(tree.get("name"), tree.get("href"))
-        self.assertEqual(
-            1, len(list(find_results(
-                tree, name="jasmin-priv-external-network"))))
+        records = find_catalogrecords(xml_queryresultrecords_catalog)
+        self.assertEqual(2, len(records))
+        self.assertEqual("Managed Public Catalog", records[0].get("name"))
+        self.assertEqual("stfc-managed-M", records[1].get("name"))
 
     def test_vapp_from_vapp(self):
         tree = ET.fromstring(xml_vapp)

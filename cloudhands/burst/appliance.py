@@ -9,6 +9,7 @@ import datetime
 import functools
 import logging
 import operator
+import re
 import textwrap
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
@@ -192,22 +193,43 @@ find_vdcs = functools.partial(
 find_vms = functools.partial(
     find_xpath, ".//*[@type='application/vnd.vmware.vcloud.vm+xml']")
 
+def find_catalogrecords(text):
+    # ElementTree expects QueryResultRecords to declare a namespace. This and
+    # other issues mean using regular expressions instead.
+    log = logging.getLogger(
+        "cloudhands.burst.appliance.find_catalogrecords")
+    log.debug(text)
+    records = re.findall("<CatalogRecord[^>]+>", text)
+    log.debug(records)
+    return [ET.fromstring(r) for r in records]
+
 @asyncio.coroutine
 def find_template_among_catalogues(
-    client, headers, templateName, catalogueNames
+    client, headers, templateName, catalogues
 ):
     log = logging.getLogger(
         "cloudhands.burst.appliance.find_template_among_catalogues")
     rv = None
-    log.debug(rv)
-    pass
-    while rv is None:
-        try:
-            org = orgs.pop(0)
-        except IndexError:
-            break
-        else:
-            log.debug(org.attrib.get("name"))
+    for catalogue in catalogues:
+        log.debug(catalogue.attrib.get("name"))
+        response = yield from client.request(
+            "GET", catalogue.attrib.get("href"),
+            headers=headers)
+        catalogueData = yield from response.read_and_close()
+        tree = ET.fromstring(catalogueData.decode("utf-8"))
+        for catalogueItem in find_catalogueitems(tree, name=templateName):
+            response = yield from client.request(
+                "GET", catalogueItem.attrib.get("href"),
+                headers=headers)
+            catalogueItemData = yield from response.read_and_close()
+            tree = ET.fromstring(catalogueItemData.decode("utf-8"))
+
+            rv = next(find_templates(tree), None)
+            if rv is not None:
+                break
+
+    return rv
+
 
 @asyncio.coroutine
 def find_template_among_orgs(
@@ -873,44 +895,27 @@ class PreProvisionAgent(Agent):
                 verify_ssl=config["host"].getboolean("verify_ssl_cert")
             )
 
+            # Find template among catalogues
             url = "{scheme}://{host}:{port}/{endpoint}".format(
                 scheme="https",
                 host=config["host"]["name"],
                 port=config["host"]["port"],
-                #endpoint="api/org")
-                endpoint="api/admin/orgs/query?format=references") # Integration
-            response = yield from client.request(
-                "GET", url,
-                headers=headers)
-
-            url = "{scheme}://{host}:{port}/{endpoint}".format(
-                scheme="https",
-                host=config["host"]["name"],
-                port=config["host"]["port"],
-                endpoint="api/query?type=catalog")
+                endpoint="api/catalogs/query")
             response = yield from client.request(
                 "GET", url, headers=headers)
             data = yield from response.read_and_close()
-            tree = ET.fromstring(data.decode("utf-8"))
 
-            template = yield from find_template_among_catalogues(
-                client, headers, image, catalogueNames=[
+            catalogues = [
+                i for i in find_catalogrecords(data.decode("utf-8"))
+                if i.attrib.get("name", None) in (
                     config["vdc"]["org"],
                     config["vdc"]["catalogue"]
-                ]
+                )
+            ]
+            log.debug(catalogues)
+            template = yield from find_template_among_catalogues(
+                client, headers, image, catalogues
             )
-
-            # FIXME: Requires admin permissions
-            orgList = yield from response.read_and_close()
-            tree = ET.fromstring(orgList.decode("utf-8"))
-
-            adminOrg = next(find_orgs(tree, name="STFC-Administrator"), None)
-
-            userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
-            orgs = (i for i in (adminOrg, userOrg) if i is not None)
-            template = yield from find_template_among_orgs(
-                client, headers, orgs, image,
-                catalogName="Managed Public Catalog")
             if template is None:
                 log.error("Couldn't find template {}".format(image))
 
@@ -934,6 +939,19 @@ class PreProvisionAgent(Agent):
                     "networks": [{"href": ncs.attrib.get("href")}],
                     "script": script})
 
+            # VDC details from organisation
+            url = "{scheme}://{host}:{port}/{endpoint}".format(
+                scheme="https",
+                host=config["host"]["name"],
+                port=config["host"]["port"],
+                endpoint="api/org")
+            response = yield from client.request(
+                "GET", url,
+                headers=headers)
+            orgList = yield from response.read_and_close()
+            tree = ET.fromstring(orgList.decode("utf-8"))
+
+            userOrg = next(find_orgs(tree, name=config["vdc"]["org"]), None)
             response = yield from client.request(
                 "GET", userOrg.attrib.get("href"),
                 headers=headers)
