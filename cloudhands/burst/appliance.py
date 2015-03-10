@@ -198,9 +198,7 @@ def find_catalogrecords(text):
     # other issues mean using regular expressions instead.
     log = logging.getLogger(
         "cloudhands.burst.appliance.find_catalogrecords")
-    log.debug(text)
     records = re.findall("<CatalogRecord[^>]+>", text)
-    log.debug(records)
     return [ET.fromstring(r) for r in records]
 
 @asyncio.coroutine
@@ -211,7 +209,6 @@ def find_template_among_catalogues(
         "cloudhands.burst.appliance.find_template_among_catalogues")
     rv = None
     for catalogue in catalogues:
-        log.debug(catalogue.attrib.get("name"))
         response = yield from client.request(
             "GET", catalogue.attrib.get("href"),
             headers=headers)
@@ -245,7 +242,6 @@ def find_template_among_orgs(
         except IndexError:
             break
         else:
-            log.debug(org.attrib.get("name"))
         response = yield from client.request(
             "GET", org.attrib.get("href"),
             headers=headers)
@@ -253,7 +249,6 @@ def find_template_among_orgs(
         tree = ET.fromstring(orgData.decode("utf-8"))
 
         for catalogue in find_catalogues(tree, name=catalogName):
-            log.debug(catalogue.attrib.get("name"))
             response = yield from client.request(
                 "GET", catalogue.attrib.get("href"),
                 headers=headers)
@@ -398,7 +393,6 @@ class PreCheckAgent(Agent):
                 key=operator.attrgetter("touch.at"),
                 reverse=True)
             node = next((i for i in resources if isinstance(i, Node)), None)
-            log.debug(node)
             config = Strategy.config(node.provider.name)
 
             headers = {
@@ -912,7 +906,6 @@ class PreProvisionAgent(Agent):
                     config["vdc"]["catalogue"]
                 )
             ]
-            log.debug(catalogues)
             template = yield from find_template_among_catalogues(
                 client, headers, image, catalogues
             )
