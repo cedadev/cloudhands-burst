@@ -242,7 +242,7 @@ def find_template_among_orgs(
         except IndexError:
             break
         else:
-        response = yield from client.request(
+            response = yield from client.request(
             "GET", org.attrib.get("href"),
             headers=headers)
         orgData = yield from response.read_and_close()
@@ -414,6 +414,7 @@ class PreCheckAgent(Agent):
                 "GET", node.uri, headers=headers)
 
             vApp = yield from response.read_and_close()
+            log.debug(vApp)
             tree = ET.fromstring(vApp.decode("utf-8"))
 
             creation = "unknown"
