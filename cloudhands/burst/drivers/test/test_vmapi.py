@@ -662,4 +662,4 @@ class ComposeVAppTests(unittest.TestCase):
                 "href": "http://cloud/api/items/12345678"
             }
         }
-        self.assertEqual(2600, len(self.macro(**data)))
+        self.assertEqual(2482, len(self.macro(**data)))

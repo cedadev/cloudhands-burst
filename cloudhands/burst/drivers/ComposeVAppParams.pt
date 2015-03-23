@@ -6,9 +6,9 @@ deploy 'false';
 powerOn 'false';">
 <Description tal:content="appliance.description"></Description>
 <InstantiationParams>
-<NetworkConfigSection tal:repeat="(n, network) enumerate(networks)">
+<NetworkConfigSection>
     <ovf:Info>Configuration parameters for logical networks</ovf:Info>
-    <NetworkConfig
+    <NetworkConfig tal:repeat="(n, network) enumerate(networks)"
 tal:attributes="
 networkName network.interface;">
     <Configuration>
