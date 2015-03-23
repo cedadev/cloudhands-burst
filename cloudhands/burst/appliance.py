@@ -926,12 +926,12 @@ class PreProvisionAgent(Agent):
 
             vmConfigs = []
             for vm in find_vms(tree):
-                ncs = next(find_networkconnectionsection(vm), None)
-                vmConfigs.append({
-                    "href": vm.attrib.get("href"),
-                    "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
-                    "networks": [{"href": ncs.attrib.get("href")}],
-                    "script": script})
+                for ncs in find_networkconnectionsection(vm):
+                    vmConfigs.append({
+                        "href": vm.attrib.get("href"),
+                        "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
+                        "networks": [{"href": ncs.attrib.get("href")}],
+                        "script": script})
 
             # VDC details from organisation
             url = "{scheme}://{host}:{port}/{endpoint}".format(
@@ -983,16 +983,15 @@ class PreProvisionAgent(Agent):
                         "description": "FIXME: Description",
                         "vms": vmConfigs,
                     },
-                    "network": {
-                        #"interface": nc.attrib.get("networkName"),
-                        "interface": config["vdc"]["network"],
-                        "name": config["vdc"]["network"],
+                    "networks": [{
+                        "interface": network,
+                        "name": network,
                         "href": netDetails.attrib.get("href"),
-                    },
+                    } for n, network in sorted(config.items("network"))],
                     "template": {
                         "name": template.attrib.get("name"),
                         "href": template.attrib.get("href"),
-                    }
+                    },
                 }
 
                 url = "{vdc}/{endpoint}".format(
