@@ -640,19 +640,26 @@ class ComposeVAppTests(unittest.TestCase):
                             "href": "http://cloud.io/vms/1",
                             "networks": [
                                 {"href": "http://cloud.io/networks/3"},
+                                {"href": "http://cloud.io/networks/4"},
                             ],
                             "script": "#!/bin/sh\n",
                         },
                 ],
             },
-            "network": {
+            "networks": [{
                 "interface": "public ethernet",
                 "name": "managed-external-network",
                 "href": "http://cloud/api/networks/12345678"
             },
+            {
+                "interface": "data network",
+                "name": "managed-data-network",
+                "href": "http://cloud/api/networks/98765432"
+            },
+            ],
             "template": {
                 "name": "Ubuntu",
                 "href": "http://cloud/api/items/12345678"
             }
         }
-        self.assertEqual(1971, len(self.macro(**data)))
+        self.assertEqual(2600, len(self.macro(**data)))

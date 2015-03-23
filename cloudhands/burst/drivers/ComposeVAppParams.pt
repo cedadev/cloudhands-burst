@@ -6,7 +6,7 @@ deploy 'false';
 powerOn 'false';">
 <Description tal:content="appliance.description"></Description>
 <InstantiationParams>
-<NetworkConfigSection>
+<NetworkConfigSection tal:repeat="(n, network) enumerate(networks)">
     <ovf:Info>Configuration parameters for logical networks</ovf:Info>
     <NetworkConfig
 tal:attributes="
@@ -24,20 +24,19 @@ href network.href;"/>
 
 <SourcedItem tal:repeat="vm appliance.vms" >
 <Source tal:attributes="href vm.href;" />
-  <InstantiationParams
-tal:repeat="net vm.networks">
+  <InstantiationParams>
      <NetworkConnectionSection
      xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
      type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
      ovf:required="false"
 tal:attributes="
-href net.href;">
+href networks[0].href;">
         <ovf:Info />
         <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
-        <NetworkConnection
+        <NetworkConnection tal:repeat="(n, net) enumerate(vm.networks)"
 tal:attributes="
-network network.name;">
-           <NetworkConnectionIndex>0</NetworkConnectionIndex>
+network networks[n].name;">
+           <NetworkConnectionIndex tal:content="n"></NetworkConnectionIndex>
            <IsConnected>true</IsConnected>
            <IpAddressAllocationMode>POOL</IpAddressAllocationMode>
         </NetworkConnection>
