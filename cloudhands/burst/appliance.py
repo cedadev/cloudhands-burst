@@ -917,8 +917,8 @@ class PreProvisionAgent(Agent):
                 "GET", template.get("href"),
                 headers=headers)
             reply = yield from response.read_and_close()
+            log.debug(reply)
             tree = ET.fromstring(reply.decode("utf-8"))
-            nc = next(find_networkconfig(tree), None)
 
             script = customizationScript.format(
                 host=portal["auth.rest"]["host"],
@@ -926,7 +926,10 @@ class PreProvisionAgent(Agent):
 
             vmConfigs = []
             for vm in find_vms(tree):
-                for ncs in find_networkconnectionsection(vm):
+                ncs = next(find_networkconnectionsection(tree), None)
+                if ncs is None:
+                    log.error("Couldn't find network connection section")
+                for nc in find_networkconnection(vm):
                     vmConfigs.append({
                         "href": vm.attrib.get("href"),
                         "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
