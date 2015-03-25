@@ -11,6 +11,7 @@ import logging
 import operator
 import re
 import textwrap
+import uuid
 import xml.etree.ElementTree as ET
 import xml.sax.saxutils
 
@@ -929,12 +930,14 @@ class PreProvisionAgent(Agent):
                 ncs = next(find_networkconnectionsection(tree), None)
                 if ncs is None:
                     log.error("Couldn't find network connection section")
-                for nc in find_networkconnection(vm):
-                    vmConfigs.append({
-                        "href": vm.attrib.get("href"),
-                        "name": ''.join(c for c in vm.attrib.get("name") if c.isalpha()),
-                        "networks": [{"href": ncs.attrib.get("href")}],
-                        "script": script})
+                vmConfigs.append({
+                    "href": vm.attrib.get("href"),
+                    "name": uuid.uuid4().hex,
+                    "networks": [
+                        {"href": ncs.attrib.get("href")}
+                        for nc in find_networkconnection(vm)
+                    ],
+                    "script": script})
 
             # VDC details from organisation
             url = "{scheme}://{host}:{port}/{endpoint}".format(
@@ -1000,7 +1003,6 @@ class PreProvisionAgent(Agent):
                 url = "{vdc}/{endpoint}".format(
                     vdc=vdcLink.attrib.get("href"),
                     endpoint="action/composeVApp")
-                    #endpoint="action/instantiateVAppTemplate")
                 headers["Content-Type"] = (
                 "application/vnd.vmware.vcloud.instantiateVAppTemplateParams+xml")
                 headers["Content-Type"] = (
