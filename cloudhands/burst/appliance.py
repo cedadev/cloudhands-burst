@@ -873,7 +873,6 @@ class PreProvisionAgent(Agent):
             choice = next(i for i in resources if isinstance(i, CatalogueChoice))
             image = choice.name
             config = Strategy.recommend(app)
-            network = config.get("vdc", "network", fallback=None)
 
             headers = {
                 "Accept": "application/*+xml;version=5.5",
@@ -934,7 +933,7 @@ class PreProvisionAgent(Agent):
                     "href": vm.attrib.get("href"),
                     "name": uuid.uuid4().hex,
                     "networks": [
-                        {"href": ncs.attrib.get("href")}
+                        {"name": nc.attrib.get("network")}
                         for nc in find_networkconnection(vm)
                     ],
                     "script": script})
@@ -979,8 +978,9 @@ class PreProvisionAgent(Agent):
                 headers=headers)
             netData = yield from response.read_and_close()
             tree = ET.fromstring(netData.decode("utf-8"))
-            netDetails = next(
-                find_results(tree, name=config["vdc"]["network"]))
+            netDetails = [
+                next(find_results(tree, name=name), None)
+                for n, name in sorted(config.items("network"))]
 
             try:
                 data = {
@@ -990,10 +990,9 @@ class PreProvisionAgent(Agent):
                         "vms": vmConfigs,
                     },
                     "networks": [{
-                        "interface": network,
-                        "name": network,
-                        "href": netDetails.attrib.get("href"),
-                    } for n, network in sorted(config.items("network"))],
+                        "name": net.attrib.get("name"),
+                        "href": net.attrib.get("href"),
+                    } for net in netDetails],
                     "template": {
                         "name": template.attrib.get("name"),
                         "href": template.attrib.get("href"),

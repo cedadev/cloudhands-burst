@@ -10,7 +10,7 @@ powerOn 'false';">
     <ovf:Info>Configuration parameters for logical networks</ovf:Info>
     <NetworkConfig tal:repeat="(n, network) enumerate(networks)"
 tal:attributes="
-networkName network.interface;">
+networkName network.name;">
     <Configuration>
         <ParentNetwork
 tal:attributes="
@@ -28,9 +28,7 @@ href network.href;"/>
      <NetworkConnectionSection
      xmlns:ovf="http://schemas.dmtf.org/ovf/envelope/1"
      type="application/vnd.vmware.vcloud.networkConnectionSection+xml"
-     ovf:required="false"
-tal:attributes="
-href networks[0].href;">
+     ovf:required="false">
         <ovf:Info />
         <PrimaryNetworkConnectionIndex>0</PrimaryNetworkConnectionIndex>
         <NetworkConnection tal:repeat="(n, net) enumerate(vm.networks)"
